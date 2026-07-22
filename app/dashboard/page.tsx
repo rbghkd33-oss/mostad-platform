@@ -22,6 +22,7 @@ import {
   Megaphone,
   Search,
   Settings,
+  ShieldCheck,
   Sparkles,
   Store,
   TrendingUp,
@@ -156,6 +157,7 @@ export default function DashboardPage() {
           <p>ACCOUNT</p>
           <button><MessageSquareText size={19} /><span>고객센터</span></button>
           <button><Settings size={19} /><span>환경 설정</span></button>
+          <button onClick={() => router.push("/admin")}><ShieldCheck size={19} /><span>관리자 페이지</span></button>
         </nav>
 
         <div className="sidebar-support">
