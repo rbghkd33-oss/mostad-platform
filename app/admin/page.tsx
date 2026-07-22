@@ -96,6 +96,8 @@ export default function AdminPage() {
         <button onClick={()=>setTab("members")} className={tab==="members"?"active":""}><Users size={18}/>회원 관리</button>
         <button onClick={()=>setTab("staff")} className={tab==="staff"?"active":""}><UserCog size={18}/>직원·권한 관리</button>
         <button onClick={()=>setTab("works")} className={tab==="works"?"active":""}><BriefcaseBusiness size={18}/>업무 배정·검수</button>
+        <button onClick={()=>router.push("/admin/work-create")}><UserRoundCog size={18}/>새 업무 등록</button>
+        <button onClick={()=>router.push("/admin/work-calendar")}><Sparkles size={18}/>작업 캘린더</button>
         <button onClick={()=>setTab("payments")} className={tab==="payments"?"active":""}><CreditCard size={18}/>PG 결제 관리</button>
       </nav><button className="admin-logout" onClick={logout}><LogOut size={17}/>로그아웃</button>
     </aside>

@@ -41,6 +41,7 @@ const navItems = [
   { label: "인스타 마케팅", icon: Sparkles },
   { label: "블로그 AI 글쓰기", icon: Bot },
   { label: "전체 마케팅 보기", icon: Megaphone, href: "/marketing" },
+  { label: "내 마케팅 진행", icon: FolderKanban, href: "/my-marketing" },
   { label: "포인트 충전", icon: CreditCard, href: "/points" },
 ];
 
