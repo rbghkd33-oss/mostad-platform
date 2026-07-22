@@ -1,20 +1,6 @@
-# v21 플레이스 분석 API 연동
-
-## 환경변수
-Vercel Environment Variables에 아래 값을 추가합니다.
-
-- Key: `PLACE_DIAG_API_KEY`
-- Value: 플레이스 진단 API에서 발급받은 X-API-Key
-- Environments: Production and Preview
-- Sensitive: ON
-
-## Supabase
-SQL Editor에서 아래 파일을 실행합니다.
-
-`supabase/migrations/011_place_analysis_integration.sql`
-
-## 화면
-- 고객 메뉴: `/place-analysis`
-- 서버 프록시: `/api/place-analysis`
-
-API 키는 클라이언트에 노출하지 않고 Next.js 서버에서만 외부 API로 전달됩니다.
+1. app, supabase 폴더와 .env.local.example을 기존 mostad-platform에 덮어씁니다.
+2. Supabase SQL Editor에서 supabase/migrations/012_blog_ai_integration.sql 전체를 실행합니다.
+3. Vercel Environment Variables에 BLOG_AI_API_KEY를 추가합니다.
+   - 플레이스 분석과 같은 API 키라면 기존 PLACE_DIAG_API_KEY를 자동으로 사용하므로 추가하지 않아도 됩니다.
+4. 로컬 .env.local에도 BLOG_AI_API_KEY를 추가하면 로컬 테스트가 가능합니다.
+5. git add . / git commit / git push로 배포합니다.
