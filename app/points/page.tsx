@@ -40,6 +40,8 @@ export default function PointsPage() {
   const [transactions, setTransactions] = useState<PointTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState("");
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
 
   useEffect(() => {
     async function loadPoints() {
@@ -85,16 +87,68 @@ export default function PointsPage() {
     setCustomAmount("");
   }
 
-  function requestPayment() {
+  async function requestPayment() {
+    setPaymentError("");
     if (amount < 10000) {
-      alert("최소 충전 금액은 10,000원입니다.");
+      setPaymentError("최소 충전 금액은 10,000원입니다.");
       return;
     }
     if (!agreed) {
-      alert("결제 및 환불 정책에 동의해 주세요.");
+      setPaymentError("결제 및 환불 정책에 동의해 주세요.");
       return;
     }
-    alert("포인트 DB 연결은 완료되었습니다. 다음 단계에서 PG 결제 승인 후 자동 충전되도록 연결합니다.");
+    if (paymentMethod !== "card") {
+      setPaymentError("현재는 신용·체크카드 결제만 지원합니다.");
+      return;
+    }
+
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      setPaymentError("로그인 정보를 확인할 수 없습니다.");
+      return;
+    }
+
+    setPaymentLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        router.replace("/");
+        return;
+      }
+
+      const response = await fetch("/api/payments/lucy/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          pointAmount: amount,
+          paymentAmount: total,
+          deviceType: /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? "M" : "P",
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "결제를 준비하지 못했습니다.");
+
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = result.authUrl;
+      form.acceptCharset = "UTF-8";
+      Object.entries(result.fields as Record<string, string>).forEach(([key, value]) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      });
+      document.body.appendChild(form);
+      form.submit();
+    } catch (error) {
+      setPaymentError(error instanceof Error ? error.message : "결제 준비 중 오류가 발생했습니다.");
+      setPaymentLoading(false);
+    }
   }
 
   return (
@@ -145,7 +199,7 @@ export default function PointsPage() {
               <strong>결제 수단</strong>
               <div>
                 <button className={paymentMethod === "card" ? "active" : ""} onClick={() => setPaymentMethod("card")}><CreditCard size={19} /> 신용·체크카드</button>
-                <button className={paymentMethod === "transfer" ? "active" : ""} onClick={() => setPaymentMethod("transfer")}><ReceiptText size={19} /> 계좌이체</button>
+                <button className={paymentMethod === "transfer" ? "active" : ""} onClick={() => setPaymentMethod("transfer")} disabled title="추후 지원 예정"><ReceiptText size={19} /> 계좌이체 <small>준비 중</small></button>
               </div>
             </div>
 
@@ -160,7 +214,8 @@ export default function PointsPage() {
               <p><span>부가세</span><strong>{vat.toLocaleString()}원</strong></p>
             </div>
             <div className="summary-total"><span>최종 결제 금액</span><strong>{total.toLocaleString()}<em>원</em></strong></div>
-            <button className="payment-button" onClick={requestPayment}>{total.toLocaleString()}원 결제하기 <ChevronRight size={17} /></button>
+            {paymentError && <div className="payment-inline-error">{paymentError}</div>}
+            <button className="payment-button" onClick={requestPayment} disabled={paymentLoading}>{paymentLoading ? <><Loader2 className="spin" size={17} /> 결제창 준비 중</> : <>{total.toLocaleString()}원 결제하기 <ChevronRight size={17} /></>}</button>
             <div className="secure-note"><LockKeyhole size={15} /><span>결제 정보는 PG사를 통해 안전하게 처리됩니다.</span></div>
           </aside>
         </div>

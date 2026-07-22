@@ -198,4 +198,4 @@ end;
 $$;
 
 -- 최초 관리자 지정 예시: 아래 이메일을 실제 관리자 이메일로 바꿔 한 번만 실행하세요.
--- update public.profiles set role = 'mostad' where email = 'most-ad@naver.com';
+-- update public.profiles set role = 'admin' where email = 'admin@example.com';
