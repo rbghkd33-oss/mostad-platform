@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
       ORDERNO: orderNo,
       PRODUCTNAME: `${pointAmount.toLocaleString("ko-KR")}P 포인트 충전`,
       PRODUCTCODE: "POINT",
-      PRODUCTTYPE: "2",
+      PRODUCTTYPE: "1",
       TAXFREECD: "00",
       AMOUNT: String(paymentAmount),
       USERNAME: buyerName,

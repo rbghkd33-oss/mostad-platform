@@ -77,10 +77,9 @@ export default function SignupPage() {
       password,
       options: {
         data: {
-          name: name.trim(),
-          company: company.trim(),
+          manager_name: name.trim(),
+          company_name: company.trim(),
           phone: phone.trim(),
-          role: "member",
         },
       },
     });

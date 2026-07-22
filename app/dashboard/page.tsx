@@ -74,6 +74,7 @@ export default function DashboardPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pointBalance, setPointBalance] = useState(0);
   const [pointError, setPointError] = useState("");
+  const [userRole, setUserRole] = useState("user");
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -91,6 +92,9 @@ export default function DashboardPage() {
       const metadata = data.user.user_metadata ?? {};
       setEmail(data.user.email ?? "");
       setDisplayName(metadata.manager_name || metadata.company_name || "모스트애드 회원");
+
+      const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
+      setUserRole(profile?.role ?? "user");
 
       try {
         const balance = await getPointBalance(supabase, data.user.id);
@@ -157,7 +161,8 @@ export default function DashboardPage() {
           <p>ACCOUNT</p>
           <button><MessageSquareText size={19} /><span>고객센터</span></button>
           <button><Settings size={19} /><span>환경 설정</span></button>
-          <button onClick={() => router.push("/admin")}><ShieldCheck size={19} /><span>관리자 페이지</span></button>
+          {["admin", "super_admin"].includes(userRole) && <button onClick={() => router.push("/admin")}><ShieldCheck size={19} /><span>관리자 페이지</span></button>}
+          {userRole === "staff" && <button onClick={() => router.push("/staff")}><ShieldCheck size={19} /><span>직원 업무</span></button>}
         </nav>
 
         <div className="sidebar-support">

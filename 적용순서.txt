@@ -1,20 +1,14 @@
-모스트애드 루시페이먼츠 팝업 결제 v13 적용 순서
+모스트애드 v14 권한·직원업무 시스템 적용순서
 
-1. 이 압축파일 안의 app 폴더를 기존 프로젝트 폴더에 복사합니다.
-   C:\Users\user\Desktop\mostad-platform
-2. 같은 파일이 있다고 나오면 대상 파일 덮어쓰기를 선택합니다.
-3. 로컬 실행:
-   cd C:\Users\user\Desktop\mostad-platform
-   pnpm dev
-4. PC에서 포인트 충전 결제 버튼을 누르면 중앙 팝업 결제창이 열리는지 확인합니다.
-5. GitHub 반영:
-   git add app
-   git commit -m "루시페이먼츠 팝업 결제창 적용"
+1) patch 안의 app, supabase 폴더를 기존 mostad-platform 폴더에 덮어쓰기
+2) Supabase SQL Editor에서 supabase/migrations/004_roles_staff_workflow.sql 전체 실행
+3) SQL Editor에서 본인 계정을 최고관리자로 변경
+   update public.profiles set role='super_admin' where email='본인이메일';
+4) 로그아웃 후 다시 로그인
+5) 로컬 확인: pnpm dev
+   관리자: http://localhost:3000/admin
+   직원: http://localhost:3000/staff
+6) Git 배포
+   git add .
+   git commit -m "최고관리자 직원 권한 및 업무배정 시스템 추가"
    git push
-
-동작 방식
-- PC: 560 x 780 중앙 팝업
-- 모바일: 기존 전체 화면 결제
-- 팝업 차단 시: 현재 화면 결제로 자동 진행
-- 완료/실패/취소 결과를 원래 포인트 화면으로 전달
-- 팝업 종료 후 포인트 잔액 및 이용 내역 재조회
