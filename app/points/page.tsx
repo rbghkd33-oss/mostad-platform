@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowDownLeft,
@@ -42,37 +42,75 @@ export default function PointsPage() {
   const [dbError, setDbError] = useState("");
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const paymentPopupRef = useRef<Window | null>(null);
+
+  const loadPoints = useCallback(async () => {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      router.replace("/");
+      return;
+    }
+
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) {
+      router.replace("/");
+      return;
+    }
+
+    try {
+      const [currentBalance, history] = await Promise.all([
+        getPointBalance(supabase, data.user.id),
+        getPointTransactions(supabase, data.user.id, 10),
+      ]);
+      setBalance(currentBalance);
+      setTransactions(history);
+      setDbError("");
+    } catch {
+      setDbError("Supabase SQL Editor에서 포인트 시스템 SQL을 먼저 실행해 주세요.");
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
 
   useEffect(() => {
-    async function loadPoints() {
-      const supabase = getSupabaseBrowserClient();
-      if (!supabase) {
-        router.replace("/");
-        return;
-      }
+    loadPoints();
+  }, [loadPoints]);
 
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) {
-        router.replace("/");
-        return;
-      }
+  useEffect(() => {
+    function handlePaymentMessage(event: MessageEvent) {
+      const allowedOrigins = new Set([
+        window.location.origin,
+        "https://mplatform.kr",
+        "https://www.mplatform.kr",
+      ]);
+      if (!allowedOrigins.has(event.origin)) return;
+      if (!event.data || typeof event.data !== "object") return;
+      if (event.data.type !== "MOSTAD_LUCY_PAYMENT_RESULT") return;
 
-      try {
-        const [currentBalance, history] = await Promise.all([
-          getPointBalance(supabase, data.user.id),
-          getPointTransactions(supabase, data.user.id, 10),
-        ]);
-        setBalance(currentBalance);
-        setTransactions(history);
-      } catch {
-        setDbError("Supabase SQL Editor에서 포인트 시스템 SQL을 먼저 실행해 주세요.");
-      } finally {
-        setLoading(false);
+      setPaymentLoading(false);
+      loadPoints();
+      if (event.data.status === "point_granted") {
+        setPaymentError("");
+      } else if (["failed", "canceled", "refunded"].includes(event.data.status)) {
+        setPaymentError("결제가 완료되지 않았습니다. 결제 내역을 확인해 주세요.");
       }
     }
 
-    loadPoints();
-  }, [router]);
+    function handleWindowFocus() {
+      if (paymentPopupRef.current?.closed) {
+        paymentPopupRef.current = null;
+        setPaymentLoading(false);
+        loadPoints();
+      }
+    }
+
+    window.addEventListener("message", handlePaymentMessage);
+    window.addEventListener("focus", handleWindowFocus);
+    return () => {
+      window.removeEventListener("message", handlePaymentMessage);
+      window.removeEventListener("focus", handleWindowFocus);
+    };
+  }, [loadPoints]);
 
   const amount = useMemo(() => {
     const custom = Number(customAmount.replace(/,/g, ""));
@@ -108,11 +146,35 @@ export default function PointsPage() {
       return;
     }
 
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const popupName = `mostadLucyPayment_${Date.now()}`;
+    let popup: Window | null = null;
+
+    // 팝업 차단을 피하려면 사용자 클릭 이벤트 안에서 먼저 빈 창을 열어야 합니다.
+    if (!isMobile) {
+      const width = 560;
+      const height = 780;
+      const left = Math.max(0, window.screenX + (window.outerWidth - width) / 2);
+      const top = Math.max(0, window.screenY + (window.outerHeight - height) / 2);
+      popup = window.open(
+        "about:blank",
+        popupName,
+        `popup=yes,width=${width},height=${height},left=${Math.round(left)},top=${Math.round(top)},resizable=yes,scrollbars=yes`,
+      );
+      paymentPopupRef.current = popup;
+      if (popup) {
+        popup.document.write("<title>모스트애드 결제 준비 중</title><p style='font-family:sans-serif;padding:32px'>결제창을 준비하고 있습니다...</p>");
+      }
+    }
+
     setPaymentLoading(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData.session?.access_token;
       if (!accessToken) {
+        if (popup && !popup.closed) popup.close();
+        paymentPopupRef.current = null;
+        setPaymentLoading(false);
         router.replace("/");
         return;
       }
@@ -136,6 +198,7 @@ export default function PointsPage() {
       form.method = "POST";
       form.action = result.authUrl;
       form.acceptCharset = "UTF-8";
+      form.target = popup ? popupName : "_self";
       Object.entries(result.fields as Record<string, string>).forEach(([key, value]) => {
         const input = document.createElement("input");
         input.type = "hidden";
@@ -145,7 +208,15 @@ export default function PointsPage() {
       });
       document.body.appendChild(form);
       form.submit();
+      form.remove();
+
+      if (popup) {
+        popup.focus();
+        setPaymentLoading(false);
+      }
     } catch (error) {
+      if (popup && !popup.closed) popup.close();
+      paymentPopupRef.current = null;
       setPaymentError(error instanceof Error ? error.message : "결제 준비 중 오류가 발생했습니다.");
       setPaymentLoading(false);
     }

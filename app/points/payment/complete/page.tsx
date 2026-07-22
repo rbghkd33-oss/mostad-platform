@@ -10,9 +10,11 @@ export default function PaymentCompletePage() {
   const [orderNo, setOrderNo] = useState("");
   const [status, setStatus] = useState("pending");
   const [message, setMessage] = useState("결제 승인 결과를 확인하고 있습니다.");
+  const [isPopup, setIsPopup] = useState(false);
 
   useEffect(() => {
     setOrderNo(new URLSearchParams(window.location.search).get("orderNo") || "");
+    setIsPopup(Boolean(window.opener && !window.opener.closed));
   }, []);
 
   useEffect(() => {
@@ -28,10 +30,18 @@ export default function PaymentCompletePage() {
       setStatus(data.status);
       if (data.status === "point_granted") {
         setMessage(`${Number(data.point_amount).toLocaleString()}P 충전이 완료되었습니다.`);
+        window.opener?.postMessage(
+          { type: "MOSTAD_LUCY_PAYMENT_RESULT", status: data.status, orderNo },
+          "*",
+        );
         return;
       }
       if (["failed", "canceled", "refunded"].includes(data.status)) {
         setMessage("결제가 승인되지 않았거나 취소되었습니다.");
+        window.opener?.postMessage(
+          { type: "MOSTAD_LUCY_PAYMENT_RESULT", status: data.status, orderNo },
+          "*",
+        );
         return;
       }
       attempts += 1;
@@ -53,8 +63,14 @@ export default function PaymentCompletePage() {
         <div className="payment-result-message">{!done && status === "pending" && <Loader2 className="spin" size={18} />}{message}</div>
         <small>주문번호 {orderNo || "-"}</small>
         <div className="payment-result-actions">
-          <button onClick={() => router.replace("/points")}>포인트 내역 확인</button>
-          <button className="secondary" onClick={() => router.replace("/dashboard")}>대시보드로 이동</button>
+          {isPopup ? (
+            <button onClick={() => window.close()}>결제창 닫기</button>
+          ) : (
+            <>
+              <button onClick={() => router.replace("/points")}>포인트 내역 확인</button>
+              <button className="secondary" onClick={() => router.replace("/dashboard")}>대시보드로 이동</button>
+            </>
+          )}
         </div>
       </section>
     </main>
