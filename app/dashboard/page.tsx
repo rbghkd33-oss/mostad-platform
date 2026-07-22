@@ -20,7 +20,7 @@ type Entry = { id:number; work_order_id:number; entry_date:string; entry_type:st
 
 const navItems = [
   { label:"대시보드", icon:LayoutDashboard, active:true },
-  { label:"플레이스분석", icon:Store }, { label:"검색량 조회", icon:Search },
+  { label:"플레이스분석", icon:Store, href:"/place-analysis" }, { label:"검색량 조회", icon:Search },
   { label:"인스타 마케팅", icon:Sparkles }, { label:"블로그 AI 글쓰기", icon:Bot },
   { label:"브랜딩 블로그 최적화 관리", icon:NotebookTabs, href:"/branding-blog" },
   { label:"전체 마케팅 보기", icon:Megaphone, href:"/marketing" },
@@ -28,7 +28,7 @@ const navItems = [
   { label:"포인트 충전", icon:CreditCard, href:"/points" },
 ];
 const quickActions = [
-  { title:"플레이스분석", description:"플레이스 순위와 경쟁업체 현황을 확인하세요.", icon:Store, tone:"purple" },
+  { title:"플레이스분석", description:"플레이스 순위와 경쟁업체 현황을 확인하세요.", icon:Store, tone:"purple", href:"/place-analysis" },
   { title:"검색량 조회", description:"키워드의 월간 검색량을 빠르게 조회하세요.", icon:Search, tone:"blue" },
   { title:"인스타 마케팅", description:"릴스 부스팅과 인스타 상품을 확인하세요.", icon:Sparkles, tone:"pink" },
   { title:"블로그 AI 글쓰기", description:"키워드에 맞는 블로그 원고를 작성하세요.", icon:Bot, tone:"orange" },
