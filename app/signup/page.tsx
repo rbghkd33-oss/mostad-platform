@@ -67,53 +67,49 @@ export default function SignupPage() {
 
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      setMessage("Supabase 연결 정보가 아직 등록되지 않았습니다. .env.local 파일을 설정해 주세요.");
+      setMessage("Supabase 연결 정보가 등록되지 않았습니다.");
       return;
     }
 
     setLoading(true);
     const normalizedEmail = email.trim().toLowerCase();
-    const { data, error } = await supabase.auth.signUp({
-      email: normalizedEmail,
-      password,
-      options: {
-        data: {
-          manager_name: name.trim(),
-          company_name: company.trim(),
+
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          managerName: name.trim(),
+          companyName: company.trim(),
           phone: phone.trim(),
-        },
-        emailRedirectTo: `${window.location.origin}/`,
-      },
-    });
-    setLoading(false);
+          email: normalizedEmail,
+          password,
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
 
-    if (error) {
-      const errorText = error.message.toLowerCase();
-      if (errorText.includes("already registered") || errorText.includes("already been registered")) {
-        setMessage("이미 가입된 이메일입니다. 로그인하거나 비밀번호 찾기를 이용해 주세요.");
-      } else if (errorText.includes("rate limit")) {
-        setMessage("회원가입 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.");
-      } else if (errorText.includes("database error")) {
-        setMessage("회원정보 저장 설정을 복구해야 합니다. 관리자에게 문의해 주세요.");
-      } else {
-        setMessage(`회원가입 오류: ${error.message}`);
+      if (!response.ok) {
+        setMessage(result.error ?? "회원가입 중 오류가 발생했습니다.");
+        return;
       }
-      return;
-    }
 
-    if (data.user?.identities && data.user.identities.length === 0) {
-      setMessage("이미 가입된 이메일입니다. 로그인하거나 비밀번호 찾기를 이용해 주세요.");
-      return;
-    }
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
+      if (loginError) {
+        setSuccess(true);
+        return;
+      }
 
-    if (data.session) {
       await supabase.rpc("ensure_my_profile");
       router.replace("/dashboard");
       router.refresh();
-      return;
+    } catch {
+      setMessage("네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setLoading(false);
     }
-
-    setSuccess(true);
   }
 
   if (success) {
@@ -122,8 +118,8 @@ export default function SignupPage() {
         <section className="signup-success-card">
           <span className="success-icon"><Check size={30} /></span>
           <p className="signup-kicker">MOSTAD MARKETING PLATFORM</p>
-          <h1>회원가입 신청이 완료되었습니다</h1>
-          <p>입력한 이메일로 인증 메일을 보냈습니다.<br />이메일 인증을 완료한 뒤 로그인해 주세요.</p>
+          <h1>회원가입이 완료되었습니다</h1>
+          <p>계정 생성이 완료되었습니다.<br />가입한 이메일과 비밀번호로 로그인해 주세요.</p>
           <button type="button" className="signup-primary-button" onClick={() => router.replace("/")}>로그인 화면으로 이동 <ArrowRight size={19} /></button>
         </section>
       </main>

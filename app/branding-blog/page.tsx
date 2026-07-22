@@ -23,8 +23,7 @@ export default function BrandingBlogPage() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [blogUrl, setBlogUrl] = useState("");
-  const [mainKeyword, setMainKeyword] = useState("");
-  const [brandIntro, setBrandIntro] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [requestNote, setRequestNote] = useState("");
   const [agreed, setAgreed] = useState(false);
 
@@ -58,8 +57,8 @@ export default function BrandingBlogPage() {
       setMessage("운영할 블로그 주소를 입력해 주세요.");
       return;
     }
-    if (!mainKeyword.trim()) {
-      setMessage("주요 키워드 또는 운영 주제를 입력해 주세요.");
+    if (!companyName.trim()) {
+      setMessage("업체명을 입력해 주세요.");
       return;
     }
     if (!agreed) {
@@ -74,11 +73,10 @@ export default function BrandingBlogPage() {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
     setSubmitting(true);
-    const { data, error } = await supabase.rpc("customer_purchase_branding_blog", {
+    const { data, error } = await supabase.rpc("customer_purchase_branding_blog_v2", {
       p_package_count: selected.count,
       p_blog_url: blogUrl.trim(),
-      p_main_keyword: mainKeyword.trim(),
-      p_brand_intro: brandIntro.trim(),
+      p_company_name: companyName.trim(),
       p_request_note: requestNote.trim(),
     });
     setSubmitting(false);
@@ -135,12 +133,11 @@ export default function BrandingBlogPage() {
         </section>
 
         <section className="branding-order-section">
-          <div className="branding-section-heading"><span>02</span><div><h2>운영 정보를 입력하세요</h2><p>직원이 콘텐츠를 준비할 때 참고할 기본 정보를 입력해 주세요.</p></div></div>
+          <div className="branding-section-heading"><span>02</span><div><h2>운영 정보를 입력하세요</h2><p>블로그 운영에 필요한 기본 정보만 간단히 입력해 주세요.</p></div></div>
           <div className="branding-form-grid">
             <label><span>블로그 주소 <b>필수</b></span><input value={blogUrl} onChange={(e) => setBlogUrl(e.target.value)} placeholder="https://blog.naver.com/..."/></label>
-            <label><span>주요 키워드·운영 주제 <b>필수</b></span><input value={mainKeyword} onChange={(e) => setMainKeyword(e.target.value)} placeholder="예: 송파 공유오피스, 법률 마케팅"/></label>
-            <label className="wide"><span>브랜드·업체 소개</span><textarea value={brandIntro} onChange={(e) => setBrandIntro(e.target.value)} placeholder="업체 특징, 주요 서비스, 강조하고 싶은 내용을 입력해 주세요."/></label>
-            <label className="wide"><span>추가 요청사항</span><textarea value={requestNote} onChange={(e) => setRequestNote(e.target.value)} placeholder="피해야 할 표현, 원하는 말투, 참고 링크 등을 입력해 주세요."/></label>
+            <label><span>업체명 <b>필수</b></span><input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="운영할 업체명을 입력해 주세요."/></label>
+            <label className="wide"><span>요청사항</span><textarea value={requestNote} onChange={(e) => setRequestNote(e.target.value)} placeholder="원하는 글 방향, 포함할 내용, 피해야 할 표현, 참고 링크 등을 입력해 주세요."/></label>
           </div>
         </section>
 
