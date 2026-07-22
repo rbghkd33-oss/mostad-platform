@@ -85,6 +85,10 @@ const categories = ["전체", "플레이스", "N쇼핑", "블로그", "인스타
 export default function MarketingPage() {
   const router = useRouter();
 
+  function openProduct(title: string) {
+    if (title === "브랜딩 블로그 최적화 관리") router.push("/branding-blog");
+  }
+
   return (
     <main className="marketing-page">
       <header className="marketing-topbar">
@@ -128,8 +132,8 @@ export default function MarketingPage() {
                 <strong>{title}</strong>
                 <p>{description}</p>
               </div>
-              <button className="marketing-apply-button">
-                상품 자세히 보기 <ChevronRight size={17} />
+              <button className="marketing-apply-button" onClick={() => openProduct(title)}>
+                {title === "브랜딩 블로그 최적화 관리" ? "상품 신청하기" : "상품 자세히 보기"} <ChevronRight size={17} />
               </button>
             </article>
           ))}

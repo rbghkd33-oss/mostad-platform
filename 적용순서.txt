@@ -1,4 +1,6 @@
-1. app, supabase 폴더를 기존 mostad-platform 폴더에 덮어씁니다.
-2. Supabase SQL Editor에서 supabase/migrations/007_signup_repair.sql 전체를 실행합니다.
-3. pnpm dev로 회원가입과 대시보드를 확인합니다.
-4. git add . / git commit / git push로 배포합니다.
+1. 압축을 풀고 app, supabase 폴더를 기존 프로젝트 C:\Users\user\Desktop\mostad-platform 에 덮어씁니다.
+2. Supabase > SQL Editor > New query에서 supabase/migrations/008_branding_blog_customer_order.sql 전체를 실행합니다.
+3. pnpm dev 실행 후 http://localhost:3000/branding-blog 에서 상품 선택·접수를 확인합니다.
+4. 고객이 접수하면 포인트가 즉시 차감되고 관리자 > 업무 배정·검수에 '접수' 상태로 표시됩니다.
+5. 관리자가 직원을 선택하면 해당 직원의 /staff 화면에 업무가 표시됩니다.
+6. 배포: git add . / git commit -m "브랜딩 블로그 상품 신청 및 직원 배정 접수 추가" / git push

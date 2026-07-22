@@ -22,6 +22,7 @@ const navItems = [
   { label:"대시보드", icon:LayoutDashboard, active:true },
   { label:"플레이스분석", icon:Store }, { label:"검색량 조회", icon:Search },
   { label:"인스타 마케팅", icon:Sparkles }, { label:"블로그 AI 글쓰기", icon:Bot },
+  { label:"브랜딩 블로그 최적화 관리", icon:NotebookTabs, href:"/branding-blog" },
   { label:"전체 마케팅 보기", icon:Megaphone, href:"/marketing" },
   { label:"내 마케팅 진행", icon:FolderKanban, href:"/my-marketing" },
   { label:"포인트 충전", icon:CreditCard, href:"/points" },
@@ -31,6 +32,7 @@ const quickActions = [
   { title:"검색량 조회", description:"키워드의 월간 검색량을 빠르게 조회하세요.", icon:Search, tone:"blue" },
   { title:"인스타 마케팅", description:"릴스 부스팅과 인스타 상품을 확인하세요.", icon:Sparkles, tone:"pink" },
   { title:"블로그 AI 글쓰기", description:"키워드에 맞는 블로그 원고를 작성하세요.", icon:Bot, tone:"orange" },
+  { title:"브랜딩 블로그 최적화 관리", description:"10·20·30회 운영 상품을 포인트로 바로 신청하세요.", icon:NotebookTabs, tone:"blue", href:"/branding-blog" },
   { title:"포인트 충전", description:"서비스 이용에 필요한 포인트를 충전하세요.", icon:CreditCard, tone:"green", href:"/points" },
 ];
 const statusLabel:Record<string,string>={received:"접수 완료",assigned:"담당자 배정",in_progress:"진행 중",review_requested:"검수 중",completed:"완료",cancelled:"취소"};
