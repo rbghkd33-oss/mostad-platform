@@ -6,7 +6,7 @@ import {
   BarChart3, Bell, Bot, ChevronRight, CircleHelp, Coins, CreditCard, ExternalLink,
   FolderKanban, Gauge, LayoutDashboard, Loader2, LogOut, Menu, MessageSquareText,
   Search, Settings, ShieldCheck, Sparkles, Store, UserRound, WalletCards, X,
-  Megaphone, MapPin, NotebookTabs, CalendarDays, CheckCircle2
+  Megaphone, MapPin, NotebookTabs, CheckCircle2
 } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { getPointBalance } from "@/lib/points";
@@ -53,6 +53,7 @@ export default function DashboardPage(){
   useEffect(()=>{const supabase=getSupabaseBrowserClient();if(!supabase){setLoading(false);return;}(async()=>{
     const{data}=await supabase.auth.getUser(); if(!data.user){router.replace("/");return;}
     const metadata=data.user.user_metadata??{}; setEmail(data.user.email??"");
+    await supabase.rpc("ensure_my_profile");
     const{data:profile}=await supabase.from("profiles").select("role,manager_name,company_name").eq("id",data.user.id).single();
     setDisplayName(profile?.manager_name||profile?.company_name||metadata.manager_name||metadata.company_name||"모스트애드 회원");
     setUserRole(profile?.role??"user");
@@ -72,7 +73,6 @@ export default function DashboardPage(){
     {label:"진행 중인 마케팅",value:String(activeWorks.length),unit:"건",icon:Gauge,tone:"purple",change:activeWorks.length?"실시간 업무 데이터":"진행 중인 상품 없음"},
     {label:"완료된 작업",value:String(completedWorks.length),unit:"건",icon:CheckCircle2,tone:"blue",change:"누적 완료 기준"},
     {label:"보유 포인트",value:pointBalance.toLocaleString(),unit:"P",icon:WalletCards,tone:"green",change:pointError||"충전·사용 내역 자동 반영"},
-    {label:"최근 업데이트",value:latestEntry?formatDate(latestEntry.entry_date):"-",unit:"",icon:CalendarDays,tone:"orange",change:latestEntry?(latestEntry.title||latestEntry.note||"작업 기록 등록"):"아직 등록된 작업 없음"},
   ];
   async function logout(){const s=getSupabaseBrowserClient();await s?.auth.signOut();router.replace("/");router.refresh();}
   if(loading)return <main className="loading-screen"><Loader2 className="spin" size={32}/><span>대시보드를 불러오고 있습니다.</span></main>;

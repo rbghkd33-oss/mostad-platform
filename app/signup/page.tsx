@@ -72,8 +72,9 @@ export default function SignupPage() {
     }
 
     setLoading(true);
+    const normalizedEmail = email.trim().toLowerCase();
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: normalizedEmail,
       password,
       options: {
         data: {
@@ -81,20 +82,32 @@ export default function SignupPage() {
           company_name: company.trim(),
           phone: phone.trim(),
         },
+        emailRedirectTo: `${window.location.origin}/`,
       },
     });
     setLoading(false);
 
     if (error) {
-      if (error.message.toLowerCase().includes("already registered")) {
-        setMessage("이미 가입된 이메일입니다.");
+      const errorText = error.message.toLowerCase();
+      if (errorText.includes("already registered") || errorText.includes("already been registered")) {
+        setMessage("이미 가입된 이메일입니다. 로그인하거나 비밀번호 찾기를 이용해 주세요.");
+      } else if (errorText.includes("rate limit")) {
+        setMessage("회원가입 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.");
+      } else if (errorText.includes("database error")) {
+        setMessage("회원정보 저장 설정을 복구해야 합니다. 관리자에게 문의해 주세요.");
       } else {
-        setMessage("회원가입 중 오류가 발생했습니다. 입력 내용을 다시 확인해 주세요.");
+        setMessage(`회원가입 오류: ${error.message}`);
       }
       return;
     }
 
+    if (data.user?.identities && data.user.identities.length === 0) {
+      setMessage("이미 가입된 이메일입니다. 로그인하거나 비밀번호 찾기를 이용해 주세요.");
+      return;
+    }
+
     if (data.session) {
+      await supabase.rpc("ensure_my_profile");
       router.replace("/dashboard");
       router.refresh();
       return;

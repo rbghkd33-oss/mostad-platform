@@ -1,17 +1,4 @@
-모스트애드 고객 대시보드 실시간 연동 v16
-
-1. app 폴더를 기존 프로젝트에 덮어씁니다.
-2. Supabase SQL Editor에서 supabase/migrations/006_customer_dashboard_sync.sql 전체를 실행합니다.
-3. 로컬 확인: pnpm dev
-4. 배포:
-   git add .
-   git commit -m "고객 대시보드 실시간 진행현황 연동"
-   git push
-
-주요 변경
-- 대시보드의 예시 숫자/목록 제거
-- 실제 고객 업무 수, 완료 수, 포인트, 최근 작업 표시
-- 직원 등록 즉시 최근 순위/포스팅 링크/진행률 표시
-- 플레이스 관리형의 날짜별 순위 등록도 25일 진행률에 반영
-- 블로그 상위노출 첫 순위 등록일을 시작일로 자동 설정
-- 내 마케팅 진행 화면에 시작일/종료일/남은 기간/최근 업데이트 표시
+1. app, supabase 폴더를 기존 mostad-platform 폴더에 덮어씁니다.
+2. Supabase SQL Editor에서 supabase/migrations/007_signup_repair.sql 전체를 실행합니다.
+3. pnpm dev로 회원가입과 대시보드를 확인합니다.
+4. git add . / git commit / git push로 배포합니다.
