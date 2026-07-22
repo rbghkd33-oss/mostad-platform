@@ -6,7 +6,7 @@ import {
   BarChart3, Bell, Bot, ChevronRight, CircleHelp, Coins, CreditCard, ExternalLink,
   FolderKanban, Gauge, LayoutDashboard, Loader2, LogOut, Menu, MessageSquareText,
   Search, Settings, ShieldCheck, Sparkles, Store, UserRound, WalletCards, X,
-  Megaphone, MapPin, NotebookTabs, CheckCircle2
+  Megaphone, MapPin, NotebookTabs, CheckCircle2, Images
 } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { getPointBalance } from "@/lib/points";
@@ -22,6 +22,7 @@ const navItems = [
   { label:"대시보드", icon:LayoutDashboard, active:true },
   { label:"플레이스분석", icon:Store, href:"/place-analysis" }, { label:"검색량 조회", icon:Search },
   { label:"인스타 마케팅", icon:Sparkles }, { label:"블로그 AI 글쓰기", icon:Bot, href:"/blog-ai" },
+  { label:"이미지 분석 블로그 글쓰기", icon:Images, href:"/blog-ai-images" },
   { label:"브랜딩 블로그 최적화 관리", icon:NotebookTabs, href:"/branding-blog" },
   { label:"전체 마케팅 보기", icon:Megaphone, href:"/marketing" },
   { label:"내 마케팅 진행", icon:FolderKanban, href:"/my-marketing" },
@@ -32,6 +33,7 @@ const quickActions = [
   { title:"검색량 조회", description:"키워드의 월간 검색량을 빠르게 조회하세요.", icon:Search, tone:"blue" },
   { title:"인스타 마케팅", description:"릴스 부스팅과 인스타 상품을 확인하세요.", icon:Sparkles, tone:"pink" },
   { title:"블로그 AI 글쓰기", description:"원고 1편당 1,000P로 AI 블로그 글을 생성하세요.", icon:Bot, tone:"orange", href:"/blog-ai" },
+  { title:"이미지 분석 블로그 글쓰기", description:"사진을 분석해 이미지 배치가 포함된 원고를 생성하세요.", icon:Images, tone:"purple", href:"/blog-ai-images" },
   { title:"브랜딩 블로그 최적화 관리", description:"10·20·30회 운영 상품을 포인트로 바로 신청하세요.", icon:NotebookTabs, tone:"blue", href:"/branding-blog" },
   { title:"포인트 충전", description:"서비스 이용에 필요한 포인트를 충전하세요.", icon:CreditCard, tone:"green", href:"/points" },
 ];
