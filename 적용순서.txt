@@ -1,16 +1,20 @@
-모스트애드 루시페이먼츠 연동 v12 패치
+모스트애드 루시페이먼츠 팝업 결제 v13 적용 순서
 
-1. 이 패치 안의 app, lib, supabase 폴더를 기존 mostad-platform 폴더에 덮어씁니다.
-2. Supabase SQL Editor에서 supabase/migrations/003_lucypayments_integration.sql 전체를 실행합니다.
-3. Vercel 환경변수에 다음 값을 등록합니다.
-   NEXT_PUBLIC_SITE_URL=https://mplatform.kr
-   SUPABASE_SERVICE_ROLE_KEY=Supabase Secret key 또는 legacy service_role key
-   LUCY_PAYMENTS_MID=발급받은 MID
-   LUCY_PAYMENTS_API_KEY=발급받은 APIKEY
-   LUCY_PAYMENTS_WEBHOOK_SECRET=직접 만든 긴 임의 문자열
-4. 루시페이먼츠에 아래 노티 URL을 등록합니다.
-   https://mplatform.kr/api/payments/lucy/notify?key=LUCY_PAYMENTS_WEBHOOK_SECRET에_넣은_값
-5. git add . / git commit / git push 후 Vercel 배포가 Ready가 될 때까지 기다립니다.
-6. 실제 결제 전 반드시 소액 테스트 결제를 진행합니다.
+1. 이 압축파일 안의 app 폴더를 기존 프로젝트 폴더에 복사합니다.
+   C:\Users\user\Desktop\mostad-platform
+2. 같은 파일이 있다고 나오면 대상 파일 덮어쓰기를 선택합니다.
+3. 로컬 실행:
+   cd C:\Users\user\Desktop\mostad-platform
+   pnpm dev
+4. PC에서 포인트 충전 결제 버튼을 누르면 중앙 팝업 결제창이 열리는지 확인합니다.
+5. GitHub 반영:
+   git add app
+   git commit -m "루시페이먼츠 팝업 결제창 적용"
+   git push
 
-주의: SUPABASE_SERVICE_ROLE_KEY, LUCY_PAYMENTS_API_KEY, WEBHOOK_SECRET은 절대 GitHub나 채팅에 올리지 마세요.
+동작 방식
+- PC: 560 x 780 중앙 팝업
+- 모바일: 기존 전체 화면 결제
+- 팝업 차단 시: 현재 화면 결제로 자동 진행
+- 완료/실패/취소 결과를 원래 포인트 화면으로 전달
+- 팝업 종료 후 포인트 잔액 및 이용 내역 재조회
