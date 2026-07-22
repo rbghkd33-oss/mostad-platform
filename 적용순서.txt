@@ -1,6 +1,17 @@
+모스트애드 v20 적용 순서
+
 1. app, supabase 폴더를 기존 mostad-platform 폴더에 덮어씁니다.
-2. Supabase SQL Editor에서 supabase/migrations/009_signup_and_branding_form_fix.sql 전체를 실행합니다.
-3. 로컬에서 pnpm dev로 회원가입과 /branding-blog 화면을 확인합니다.
-4. git add .
-5. git commit -m "회원가입 제한 오류 및 브랜딩 블로그 접수항목 수정"
-6. git push
+2. Supabase SQL Editor에서 아래 파일 전체를 실행합니다.
+   supabase/migrations/010_staff_company_calendar.sql
+3. 로컬 실행:
+   cd C:\Users\user\Desktop\mostad-platform
+   pnpm dev
+4. 확인 주소:
+   http://localhost:3000/admin/work-calendar
+   http://localhost:3000/staff
+5. 배포:
+   git add .
+   git commit -m "직원별 작업 캘린더 및 업체명 기록 추가"
+   git push
+
+주의: 회원가입 코드는 이번 패치에서 변경하지 않았습니다.
