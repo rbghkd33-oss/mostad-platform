@@ -60,7 +60,15 @@ export default function KeywordAnalysisPage() {
     setMessage("무료 분석 요청을 준비하고 있습니다.");
 
     const supabase = getSupabaseBrowserClient();
-    const session = (await supabase?.auth.getSession()).data.session;
+    if (!supabase) {
+      setMessage("로그인 연결 정보를 불러오지 못했습니다.");
+      setIsError(true);
+      setRunning(false);
+      return;
+    }
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData.session;
     if (!session) {
       setMessage("로그인이 필요합니다.");
       setIsError(true);
