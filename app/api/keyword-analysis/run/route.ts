@@ -105,13 +105,27 @@ export async function POST(request: NextRequest) {
 
           while (Date.now() < deadline) {
             await new Promise((resolve) => setTimeout(resolve, 4000));
-            const jobResponse = await fetch(
-              `${BASE}/api/job/${encodeURIComponent(jobId)}`,
+            // 키워드 분석 작업은 원고 생성 작업과 job 경로가 분리되어 있습니다.
+            // 운영 서버에서는 /api/keyword-job/{job_id}를 우선 사용하고,
+            // 단독 배포 환경과의 호환성을 위해 404일 때만 /api/job/{job_id}로 재시도합니다.
+            let jobResponse = await fetch(
+              `${BASE}/api/keyword-job/${encodeURIComponent(jobId)}`,
               {
                 headers: { "X-API-Key": apiKey },
                 cache: "no-store",
               },
             );
+
+            if (jobResponse.status === 404) {
+              jobResponse = await fetch(
+                `${BASE}/api/job/${encodeURIComponent(jobId)}`,
+                {
+                  headers: { "X-API-Key": apiKey },
+                  cache: "no-store",
+                },
+              );
+            }
+
             const job = (await jobResponse.json().catch(() => ({}))) as Record<
               string,
               unknown
