@@ -90,7 +90,7 @@ export default function AdminPage() {
   if(!authorized)return <main className="admin-denied"><ShieldCheck size={46}/><h1>관리자 권한이 필요합니다.</h1><p>관리자 또는 최고관리자 계정만 접근할 수 있습니다.</p><button onClick={()=>router.replace("/dashboard")}>대시보드로 돌아가기</button></main>;
 
   return <main className="admin-page">
-    <aside className="admin-sidebar"><div className="admin-brand"><span><Sparkles size={20}/></span><div><strong>모스트애드</strong><small>{roleLabel[currentRole]}</small></div></div>
+    <aside className="admin-sidebar"><div className="admin-brand"><img className="mostad-brand-logo" src="/mostad-logo.png" alt="모스트애드 로고"/><div><strong>모스트애드</strong><small>{roleLabel[currentRole]}</small></div></div>
       <nav>
         <button className="active"><LayoutDashboard size={18}/>관리자 홈</button>
         <button onClick={()=>setTab("members")} className={tab==="members"?"active":""}><Users size={18}/>회원 관리</button>

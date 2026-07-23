@@ -226,7 +226,7 @@ export default function PointsPage() {
     <main className="points-page">
       <header className="points-topbar">
         <button onClick={() => router.push("/dashboard")}><ArrowLeft size={18} /> 대시보드</button>
-        <div className="points-brand"><span><Sparkles size={18} /></span><strong>모스트애드</strong></div>
+        <div className="points-brand"><img className="mostad-brand-logo" src="/mostad-logo.png" alt="모스트애드 로고"/><strong>모스트애드</strong></div>
       </header>
 
       <section className="points-container">

@@ -99,7 +99,7 @@ export default function BrandingBlogPage() {
     <main className="branding-order-page">
       <header className="branding-order-topbar">
         <button onClick={() => router.push("/dashboard")}><ArrowLeft size={18}/> 대시보드</button>
-        <div><span><Sparkles size={18}/></span><strong>모스트애드</strong></div>
+        <div><img className="mostad-brand-logo" src="/mostad-logo.png" alt="모스트애드 로고"/><strong>모스트애드</strong></div>
       </header>
 
       <section className="branding-order-container">

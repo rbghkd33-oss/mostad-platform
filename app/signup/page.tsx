@@ -134,7 +134,7 @@ export default function SignupPage() {
             <ArrowLeft size={19} /> 로그인으로 돌아가기
           </button>
           <div className="signup-logo">
-            <span className="brand-symbol"><Layers3 size={22} /></span>
+            <img className="mobile-brand-image" src="/mostad-logo.png" alt="모스트애드 로고" />
             <span>모스트애드</span>
           </div>
         </header>

@@ -103,7 +103,7 @@ export default function PlaceAnalysisPage(){
   return <main className="place-analysis-page">
     <header className="place-analysis-topbar">
       <button onClick={()=>router.push("/dashboard")}><ArrowLeft size={18}/>대시보드로 돌아가기</button>
-      <div><span><Sparkles size={17}/></span><strong>모스트애드 플레이스 분석</strong></div>
+      <div><img className="mostad-brand-logo" src="/mostad-logo.png" alt="모스트애드 로고"/><strong>모스트애드 플레이스 분석</strong></div>
     </header>
 
     <section className="place-analysis-container">

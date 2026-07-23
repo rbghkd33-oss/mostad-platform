@@ -96,7 +96,7 @@ export default function MarketingPage() {
           <ArrowLeft size={18} /> 대시보드로 돌아가기
         </button>
         <div className="marketing-brand">
-          <span><Sparkles size={18} /></span>
+          <img className="mostad-brand-logo" src="/mostad-logo.png" alt="모스트애드 로고"/>
           <strong>모스트애드</strong>
         </div>
       </header>

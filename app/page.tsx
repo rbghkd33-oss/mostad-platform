@@ -93,7 +93,7 @@ export default function LoginPage() {
 
         <div className="brand-content">
           <div className="brand-logo" aria-label="모스트애드">
-            <span className="brand-symbol"><Layers3 size={25} strokeWidth={2.4} /></span>
+            <img className="login-brand-image" src="/mostad-logo.png" alt="모스트애드 로고" />
             <span>모스트애드</span>
           </div>
 
@@ -132,7 +132,7 @@ export default function LoginPage() {
 
       <section className="login-panel">
         <div className="mobile-logo">
-          <span className="brand-symbol"><Layers3 size={22} /></span>
+          <img className="mobile-brand-image" src="/mostad-logo.png" alt="모스트애드 로고" />
           <span>모스트애드</span>
         </div>
 

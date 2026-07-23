@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   BarChart3, Bell, Bot, ChevronRight, CircleHelp, Coins, CreditCard, ExternalLink,
   FolderKanban, Gauge, LayoutDashboard, Loader2, LogOut, Menu, MessageSquareText,
-  Search, Settings, ShieldCheck, Sparkles, Store, UserRound, WalletCards, X,
+  Search, ShieldCheck, Sparkles, Store, UserRound, WalletCards, X,
   Megaphone, MapPin, NotebookTabs, CheckCircle2, Images
 } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
@@ -20,7 +20,7 @@ type Entry = { id:number; work_order_id:number; entry_date:string; entry_type:st
 
 const navItems = [
   { label:"대시보드", icon:LayoutDashboard, active:true },
-  { label:"플레이스분석", icon:Store, href:"/place-analysis" }, { label:"검색량 조회", icon:Search },
+  { label:"플레이스분석", icon:Store, href:"/place-analysis" }, { label:"검색량 조회", icon:Search, href:"/keyword-analysis" },
   { label:"인스타 마케팅", icon:Sparkles }, { label:"블로그 AI 글쓰기", icon:Bot, href:"/blog-ai" },
   { label:"이미지 분석 블로그 글쓰기", icon:Images, href:"/blog-ai-images" },
   { label:"브랜딩 블로그 최적화 관리", icon:NotebookTabs, href:"/branding-blog" },
@@ -30,7 +30,7 @@ const navItems = [
 ];
 const quickActions = [
   { title:"플레이스분석", description:"플레이스 순위와 경쟁업체 현황을 확인하세요.", icon:Store, tone:"purple", href:"/place-analysis" },
-  { title:"검색량 조회", description:"키워드의 월간 검색량을 빠르게 조회하세요.", icon:Search, tone:"blue" },
+  { title:"검색량 조회", description:"검색량·문서수·경쟁률과 추천 키워드를 분석하세요.", icon:Search, tone:"blue", href:"/keyword-analysis" },
   { title:"인스타 마케팅", description:"릴스 부스팅과 인스타 상품을 확인하세요.", icon:Sparkles, tone:"pink" },
   { title:"블로그 AI 글쓰기", description:"원고 1편당 1,000P로 AI 블로그 글을 생성하세요.", icon:Bot, tone:"orange", href:"/blog-ai" },
   { title:"이미지 분석 블로그 글쓰기", description:"사진을 분석해 이미지 배치가 포함된 원고를 생성하세요.", icon:Images, tone:"purple", href:"/blog-ai-images" },
@@ -84,9 +84,9 @@ export default function DashboardPage(){
   return <main className="app-dashboard">
     {mobileOpen&&<button className="dashboard-overlay" aria-label="메뉴 닫기" onClick={()=>setMobileOpen(false)}/>}
     <aside className={`dashboard-sidebar ${mobileOpen?"is-open":""}`}>
-      <div className="sidebar-brand"><span className="brand-symbol"><Sparkles size={21}/></span><div><strong>모스트애드</strong><span>MARKETING PLATFORM</span></div><button className="sidebar-close" onClick={()=>setMobileOpen(false)}><X size={20}/></button></div>
+      <div className="sidebar-brand"><img className="mostad-brand-logo" src="/mostad-logo.png" alt="모스트애드 로고"/><div><strong>모스트애드</strong><span>MARKETING PLATFORM</span></div><button className="sidebar-close" onClick={()=>setMobileOpen(false)}><X size={20}/></button></div>
       <nav className="sidebar-nav"><p>WORKSPACE</p>{navItems.map(({label,icon:Icon,active,href})=><button key={label} className={active?"active":""} onClick={()=>href&&router.push(href)}><Icon size={19}/><span>{label}</span></button>)}</nav>
-      <nav className="sidebar-nav sidebar-nav-bottom"><p>ACCOUNT</p><button><MessageSquareText size={19}/><span>고객센터</span></button><button><Settings size={19}/><span>환경 설정</span></button>{["admin","super_admin"].includes(userRole)&&<button onClick={()=>router.push("/admin")}><ShieldCheck size={19}/><span>관리자 페이지</span></button>}{userRole==="staff"&&<button onClick={()=>router.push("/staff")}><ShieldCheck size={19}/><span>직원 업무</span></button>}</nav>
+      <nav className="sidebar-nav sidebar-nav-bottom"><p>ACCOUNT</p><button><MessageSquareText size={19}/><span>고객센터</span></button>{["admin","super_admin"].includes(userRole)&&<button onClick={()=>router.push("/admin")}><ShieldCheck size={19}/><span>관리자 페이지</span></button>}{userRole==="staff"&&<button onClick={()=>router.push("/staff")}><ShieldCheck size={19}/><span>직원 업무</span></button>}</nav>
       <div className="sidebar-support"><CircleHelp size={21}/><div><strong>도움이 필요하신가요?</strong><span>모스트애드 담당자에게 문의하세요.</span></div><ChevronRight size={17}/></div>
       <div className="sidebar-profile"><span className="profile-avatar">{initials}</span><div><strong>{displayName}</strong><span>{email}</span></div><button onClick={logout}><LogOut size={18}/></button></div>
     </aside>
