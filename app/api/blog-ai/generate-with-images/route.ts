@@ -3,7 +3,8 @@ import { NextRequest } from "next/server";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-const BLOG_API_URL = "https://place.bidamgil.com/api/generate-body-with-images";
+const BLOG_API_BASE = "https://place.bidamgil.com";
+const BLOG_START_URL = `${BLOG_API_BASE}/api/generate-body-with-images-async`;
 const COST = 1000;
 const MAX_FILE_COUNT = 12;
 const MAX_TOTAL_BYTES = 4 * 1024 * 1024;
@@ -103,23 +104,47 @@ export async function POST(request: NextRequest) {
           outbound.append("guide", guide);
           files.forEach(file => outbound.append("files", file, file.name));
 
-          const apiController = new AbortController();
-          const timer = setTimeout(() => apiController.abort(), 285_000);
-          let apiResponse: Response;
-          try {
-            apiResponse = await fetch(BLOG_API_URL, {
-              method: "POST", headers: { "X-API-Key": apiKey }, body: outbound, cache: "no-store", signal: apiController.signal,
-            });
-          } finally {
-            clearTimeout(timer); if (heartbeat) clearInterval(heartbeat);
+          const startResponse = await fetch(BLOG_START_URL, {
+            method: "POST", headers: { "X-API-Key": apiKey }, body: outbound, cache: "no-store",
+          });
+          const startRaw = await startResponse.text();
+          let startJob: Record<string, unknown> = {};
+          try { startJob = JSON.parse(startRaw) as Record<string, unknown>; } catch {}
+          if (!startResponse.ok || typeof startJob.job_id !== "string") {
+            throw new Error(typeof startJob.detail === "string" ? startJob.detail : `이미지 원고 작업 시작 실패 (${startResponse.status})`);
           }
 
-          const raw = await apiResponse.text();
-          let result: Record<string, unknown>;
-          try { result = JSON.parse(raw) as Record<string, unknown>; }
-          catch { result = { detail: raw.slice(0,500) || "원고 생성 서버 응답을 해석하지 못했습니다." }; }
-          if (!apiResponse.ok || typeof result.body !== "string") {
-            throw new Error(typeof result.detail === "string" ? result.detail : `이미지 원고 생성 실패 (${apiResponse.status})`);
+          const jobId = startJob.job_id;
+          const deadline = Date.now() + 290_000;
+          let result: Record<string, unknown> | null = null;
+          while (Date.now() < deadline) {
+            await new Promise(resolve => setTimeout(resolve, 4_000));
+            const jobResponse = await fetch(`${BLOG_API_BASE}/api/job/${encodeURIComponent(jobId)}`, {
+              headers: { "X-API-Key": apiKey }, cache: "no-store",
+            });
+            const jobRaw = await jobResponse.text();
+            let job: Record<string, unknown> = {};
+            try { job = JSON.parse(jobRaw) as Record<string, unknown>; } catch {}
+            if (!jobResponse.ok) {
+              throw new Error(typeof job.detail === "string" ? job.detail : `이미지 원고 상태 조회 실패 (${jobResponse.status})`);
+            }
+            const jobStatus = typeof job.status === "string" ? job.status : "";
+            send("status", {
+              step: "analyze",
+              message: typeof job.progress === "string" ? job.progress : "이미지를 분석해 원고를 작성하고 있습니다.",
+              elapsed: Number(job.elapsed_seconds ?? Math.floor((Date.now()-startedAt)/1000)),
+            });
+            if (jobStatus === "done") {
+              result = job.result && typeof job.result === "object" ? job.result as Record<string, unknown> : null;
+              break;
+            }
+            if (jobStatus === "failed") {
+              throw new Error(typeof job.error === "string" ? job.error : "이미지 원고 생성에 실패했습니다.");
+            }
+          }
+          if (heartbeat) clearInterval(heartbeat);
+          if (!result || typeof result.body !== "string") {
+            throw new Error("이미지 원고 생성 시간이 초과되었습니다. 포인트는 차감되지 않았습니다.");
           }
 
           send("status", { step: "charge", message: "원고 생성이 완료되어 1,000P를 차감하고 결과를 저장하고 있습니다." });
