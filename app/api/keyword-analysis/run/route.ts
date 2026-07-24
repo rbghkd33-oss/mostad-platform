@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export const maxDuration = 180;
 
 const DEFAULT_BASE = "https://place.bidamgil.com";
@@ -75,6 +76,33 @@ export async function POST(request: NextRequest) {
           }
 
           send("status", {
+            message: "키워드 분석 서버 연결을 확인하고 있습니다.",
+            elapsed: 0,
+          });
+
+          const health = await fetch(`${base}/health`, {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            cache: "no-store",
+          });
+          const healthData = (await health.json().catch(() => ({}))) as Record<
+            string,
+            unknown
+          >;
+          if (!health.ok) {
+            throw new Error(
+              typeof healthData.detail === "string"
+                ? healthData.detail
+                : `키워드 분석 서버 연결 실패 (${health.status})`,
+            );
+          }
+          if (healthData.credentials_ready === false) {
+            throw new Error(
+              "키워드 분석 서버의 네이버 API 자격증명이 준비되지 않았습니다.",
+            );
+          }
+
+          send("status", {
             message: "무료 키워드 분석 작업을 시작하고 있습니다.",
             elapsed: 0,
           });
@@ -85,7 +113,12 @@ export async function POST(request: NextRequest) {
               "Content-Type": "application/json",
               "X-API-Key": apiKey,
             },
-            body: JSON.stringify({ seed_keyword: seed }),
+            body: JSON.stringify({
+              seed_keyword: seed,
+              min_volume: 10,
+              max_ratio: 999,
+              limit: 10,
+            }),
             cache: "no-store",
           });
           const startData = (await start.json().catch(() => ({}))) as Record<
@@ -96,7 +129,11 @@ export async function POST(request: NextRequest) {
             throw new Error(
               typeof startData.detail === "string"
                 ? startData.detail
-                : `분석 시작 실패 (${start.status})`,
+                : typeof startData.error === "string"
+                  ? startData.error
+                  : typeof startData.message === "string"
+                    ? startData.message
+                    : `분석 시작 실패 (${start.status})`,
             );
           }
 
