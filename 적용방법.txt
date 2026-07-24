@@ -1,5 +1,6 @@
 1. app 폴더를 기존 프로젝트에 덮어씁니다.
-2. Vercel Environment Variables에 아래 값을 추가합니다.
-   KEYWORD_API_BASE_URL=https://association-calendar-proceeds-bedrooms.trycloudflare.com
-3. Production, Preview에 적용하고 Redeploy 합니다.
-4. 터널 주소가 바뀌면 코드 수정 없이 환경변수 값만 새 주소로 변경합니다.
+2. Supabase SQL 실행은 필요 없습니다.
+3. Vercel 환경변수 KEYWORD_API_BASE_URL 값이 현재 터널 주소인지 확인합니다.
+4. git add .
+5. git commit -m "키워드 터널 정규식 빌드 오류 수정"
+6. git push
