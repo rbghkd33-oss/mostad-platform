@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 export const runtime = "edge";
 export const maxDuration = 180;
 
-const BASE = "https://place.bidamgil.com";
+const DEFAULT_BASE = "https://place.bidamgil.com";
 const evt = (name: string, data: unknown) =>
   `event: ${name}\ndata: ${JSON.stringify(data)}\n\n`;
 const txt = (value: unknown, max: number) =>
@@ -35,6 +35,8 @@ export async function POST(request: NextRequest) {
           const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
           const apiKey =
             process.env.BLOG_AI_API_KEY || process.env.PLACE_DIAG_API_KEY;
+          const configuredBase = process.env.KEYWORD_API_BASE_URL?.trim();
+          const base = (configuredBase || DEFAULT_BASE).replace(/\\/$/, "");
 
           if (!supabaseUrl || !anon || !service || !apiKey) {
             throw new Error("서버 환경변수가 설정되지 않았습니다.");
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest) {
             elapsed: 0,
           });
 
-          const start = await fetch(`${BASE}/api/keyword-analyze-async`, {
+          const start = await fetch(`${base}/api/keyword-analyze-async`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -105,11 +107,13 @@ export async function POST(request: NextRequest) {
 
           while (Date.now() < deadline) {
             await new Promise((resolve) => setTimeout(resolve, 4000));
-            // 키워드 분석 작업은 원고 생성 작업과 job 경로가 분리되어 있습니다.
-            // 운영 서버에서는 /api/keyword-job/{job_id}를 우선 사용하고,
-            // 단독 배포 환경과의 호환성을 위해 404일 때만 /api/job/{job_id}로 재시도합니다.
+            // 별도 터널 서버는 /api/job/{job_id}, 통합 서버는
+            // /api/keyword-job/{job_id}를 사용합니다. 환경변수로 별도 서버 주소가
+            // 설정된 경우 /api/job을 우선 사용합니다.
+            const primaryJobPath = configuredBase ? "job" : "keyword-job";
+            const fallbackJobPath = configuredBase ? "keyword-job" : "job";
             let jobResponse = await fetch(
-              `${BASE}/api/keyword-job/${encodeURIComponent(jobId)}`,
+              `${base}/api/${primaryJobPath}/${encodeURIComponent(jobId)}`,
               {
                 headers: { "X-API-Key": apiKey },
                 cache: "no-store",
@@ -118,7 +122,7 @@ export async function POST(request: NextRequest) {
 
             if (jobResponse.status === 404) {
               jobResponse = await fetch(
-                `${BASE}/api/job/${encodeURIComponent(jobId)}`,
+                `${base}/api/${fallbackJobPath}/${encodeURIComponent(jobId)}`,
                 {
                   headers: { "X-API-Key": apiKey },
                   cache: "no-store",
