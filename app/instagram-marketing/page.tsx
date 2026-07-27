@@ -1,0 +1,139 @@
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft, CheckCircle2, Clock3, Eye, Heart, Loader2, MessageCircle,
+  Plus, RefreshCw, Settings2, Sparkles, UserPlus, XCircle,
+} from "lucide-react";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { getPointBalance } from "@/lib/points";
+
+type OrderStatus = "pending_approval" | "active" | "rejected" | "expired" | "canceled";
+type InstagramOrder = {
+  id:number; instagram_username:string; status:OrderStatus; price_points:number;
+  follow_enabled:boolean; follow_keywords:string; feed_follow_limit:number; search_follow_limit:number;
+  like_enabled:boolean; like_keywords:string; feed_like_limit:number; search_like_limit:number;
+  story_enabled:boolean; story_daily_limit:number; comment_enabled:boolean; comment_daily_limit:number;
+  comment_templates:string; rejection_reason:string|null; service_start_at:string|null;
+  service_end_at:string|null; created_at:string;
+};
+
+const PRICE = 150000;
+const statusInfo:Record<OrderStatus,{label:string;className:string;description:string}> = {
+  pending_approval:{label:"관리자 승인 요청 중",className:"pending",description:"관리자가 신청 내용을 확인하고 있습니다."},
+  active:{label:"인스타 최적화 가동중",className:"active",description:"설정한 조건으로 최적화 서비스가 진행 중입니다."},
+  rejected:{label:"승인 반려",className:"rejected",description:"신청 금액은 포인트로 자동 환불됩니다."},
+  expired:{label:"30일 상품 종료",className:"expired",description:"이용 기간이 종료된 계정입니다."},
+  canceled:{label:"서비스 취소",className:"canceled",description:"취소된 계정입니다."},
+};
+const numberValue=(value:string,max:number)=>Math.max(0,Math.min(Number(value.replace(/[^0-9]/g,""))||0,max));
+const dateText=(value:string|null)=>value?new Intl.DateTimeFormat("ko-KR",{year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(value)):"-";
+const daysLeft=(end:string|null)=>end?Math.max(0,Math.ceil((new Date(end).getTime()-Date.now())/86400000)):0;
+
+export default function InstagramMarketingPage(){
+  const router=useRouter();
+  const[loading,setLoading]=useState(true); const[submitting,setSubmitting]=useState(false);
+  const[balance,setBalance]=useState(0); const[orders,setOrders]=useState<InstagramOrder[]>([]);
+  const[message,setMessage]=useState(""); const[error,setError]=useState("");
+  const[username,setUsername]=useState("");
+  const[followEnabled,setFollowEnabled]=useState(true); const[followKeywords,setFollowKeywords]=useState("맛집,카페");
+  const[feedFollow,setFeedFollow]=useState(10); const[searchFollow,setSearchFollow]=useState(10);
+  const[likeEnabled,setLikeEnabled]=useState(true); const[likeKeywords,setLikeKeywords]=useState("맛집,카페");
+  const[feedLike,setFeedLike]=useState(25); const[searchLike,setSearchLike]=useState(25);
+  const[storyEnabled,setStoryEnabled]=useState(true); const[storyLimit,setStoryLimit]=useState(30);
+  const[commentEnabled,setCommentEnabled]=useState(true); const[commentLimit,setCommentLimit]=useState(5);
+  const[comments,setComments]=useState("😊\n좋은 게시물이네요 😊");
+
+  async function load(){
+    const supabase=getSupabaseBrowserClient(); if(!supabase)return;
+    const{data:{user}}=await supabase.auth.getUser(); if(!user){router.replace("/");return;}
+    await supabase.rpc("refresh_instagram_order_expiry");
+    const[{data:o,error:e},points]=await Promise.all([
+      supabase.from("instagram_optimization_orders").select("id,instagram_username,status,price_points,follow_enabled,follow_keywords,feed_follow_limit,search_follow_limit,like_enabled,like_keywords,feed_like_limit,search_like_limit,story_enabled,story_daily_limit,comment_enabled,comment_daily_limit,comment_templates,rejection_reason,service_start_at,service_end_at,created_at").eq("user_id",user.id).order("created_at",{ascending:false}),
+      getPointBalance(supabase,user.id),
+    ]);
+    if(e)throw e; setOrders((o??[]) as InstagramOrder[]);setBalance(points);
+  }
+  useEffect(()=>{load().catch(e=>setError(e instanceof Error?e.message:"정보를 불러오지 못했습니다.")).finally(()=>setLoading(false));},[]);
+
+  const activeCount=orders.filter(o=>o.status==="active").length;
+  const pendingCount=orders.filter(o=>o.status==="pending_approval").length;
+  const canSubmit=balance>=PRICE&&username.trim().length>0&&!submitting;
+
+  async function submit(){
+    if(!canSubmit)return; const supabase=getSupabaseBrowserClient();if(!supabase)return;
+    setSubmitting(true);setError("");setMessage("");
+    const{error:e}=await supabase.rpc("create_instagram_optimization_order",{
+      p_instagram_username:username.trim(),p_follow_enabled:followEnabled,p_follow_keywords:followKeywords,
+      p_feed_follow_limit:feedFollow,p_search_follow_limit:searchFollow,p_like_enabled:likeEnabled,p_like_keywords:likeKeywords,
+      p_feed_like_limit:feedLike,p_search_like_limit:searchLike,p_story_enabled:storyEnabled,p_story_daily_limit:storyLimit,
+      p_comment_enabled:commentEnabled,p_comment_daily_limit:commentLimit,p_comment_templates:comments,
+    });
+    if(e){setError(e.message);setSubmitting(false);return;}
+    setUsername("");setMessage("계정 신청이 접수되었습니다. 관리자 승인 후 30일 동안 가동됩니다.");
+    await load();setSubmitting(false);
+  }
+
+  if(loading)return <main className="loading-screen"><Loader2 className="spin" size={32}/><span>인스타 마케팅을 불러오고 있습니다.</span></main>;
+
+  return <main className="instagram-page">
+    <div className="instagram-shell">
+      <button className="instagram-back" onClick={()=>router.push("/dashboard")}><ArrowLeft size={17}/>대시보드</button>
+      <section className="instagram-hero">
+        <div><span><Sparkles size={15}/> MOSTAD INSTAGRAM OPTIMIZER</span><h1>인스타 계정 최적화</h1><p>원하는 활동 조건을 설정하고 계정을 신청하세요.<br/>관리자 승인 후 30일 동안 최적화 서비스가 가동됩니다.</p></div>
+        <div className="instagram-price"><small>계정 1개 · 30일</small><strong>150,000P</strong><span>승인 반려 시 자동 환불</span></div>
+      </section>
+
+      <section className="instagram-summary">
+        <article><span>보유 포인트</span><strong>{balance.toLocaleString()}P</strong></article>
+        <article><span>승인 요청 중</span><strong>{pendingCount}개</strong></article>
+        <article><span>최적화 가동중</span><strong>{activeCount}개</strong></article>
+      </section>
+
+      <section className="instagram-account-card">
+        <div className="instagram-section-title"><span><UserPlus size={20}/></span><div><h2>새 계정 추가</h2><p>API 연동 전 단계에서는 인스타그램 아이디와 활동 설정만 접수합니다.</p></div></div>
+        <div className="instagram-account-input"><span>@</span><input value={username} onChange={e=>setUsername(e.target.value.replace(/^@/,""))} placeholder="인스타그램 아이디" maxLength={100}/></div>
+      </section>
+
+      <section className="instagram-control-card">
+        <div className="instagram-control-heading"><div><Settings2 size={20}/><h2>계정 활동 설정</h2></div><span>선택한 설정은 승인 후 적용됩니다.</span></div>
+        <div className="instagram-control-grid">
+          <SettingBox icon={<UserPlus size={18}/>} title="선팔로우 설정" checked={followEnabled} setChecked={setFollowEnabled}>
+            <label>검색 키워드 <small>쉼표로 구분</small><input disabled={!followEnabled} value={followKeywords} onChange={e=>setFollowKeywords(e.target.value)} placeholder="맛집,카페"/></label>
+            <div className="instagram-two-input"><label>피드 선팔 한도<input disabled={!followEnabled} value={feedFollow} onChange={e=>setFeedFollow(numberValue(e.target.value,500))}/></label><label>검색 선팔 한도<input disabled={!followEnabled} value={searchFollow} onChange={e=>setSearchFollow(numberValue(e.target.value,500))}/></label></div>
+          </SettingBox>
+          <SettingBox icon={<Heart size={18}/>} title="좋아요 설정" checked={likeEnabled} setChecked={setLikeEnabled}>
+            <label>검색 키워드 <small>쉼표로 구분</small><input disabled={!likeEnabled} value={likeKeywords} onChange={e=>setLikeKeywords(e.target.value)} placeholder="맛집,카페"/></label>
+            <div className="instagram-two-input"><label>피드 좋아요 한도<input disabled={!likeEnabled} value={feedLike} onChange={e=>setFeedLike(numberValue(e.target.value,1000))}/></label><label>검색 좋아요 한도<input disabled={!likeEnabled} value={searchLike} onChange={e=>setSearchLike(numberValue(e.target.value,1000))}/></label></div>
+          </SettingBox>
+          <SettingBox icon={<Eye size={18}/>} title="스토리 자동 시청" checked={storyEnabled} setChecked={setStoryEnabled}>
+            <label>일일 시청 한도<input disabled={!storyEnabled} value={storyLimit} onChange={e=>setStoryLimit(numberValue(e.target.value,1000))}/></label>
+          </SettingBox>
+          <SettingBox icon={<MessageCircle size={18}/>} title="소통 댓글 설정" checked={commentEnabled} setChecked={setCommentEnabled}>
+            <label>일일 최대 댓글 수<input disabled={!commentEnabled} value={commentLimit} onChange={e=>setCommentLimit(numberValue(e.target.value,100))}/></label>
+            <label>댓글 템플릿 <small>한 줄에 하나</small><textarea disabled={!commentEnabled} value={comments} onChange={e=>setComments(e.target.value)} placeholder={'😊\n좋은 게시물이네요 😊'}/></label>
+          </SettingBox>
+        </div>
+        {error&&<div className="instagram-alert error"><XCircle size={17}/>{error}</div>}
+        {message&&<div className="instagram-alert success"><CheckCircle2 size={17}/>{message}</div>}
+        <div className="instagram-submit-row"><div><span>신청 시 차감</span><strong>150,000P</strong><small>관리자 승인일부터 30일간 이용</small></div><button disabled={!canSubmit} onClick={submit}>{submitting?<><Loader2 className="spin" size={18}/>접수 중</>:<><Plus size={18}/>계정 추가 및 승인 요청</>}</button></div>
+        {balance<PRICE&&<p className="instagram-point-warning">포인트가 부족합니다. 포인트 충전 후 신청할 수 있습니다.</p>}
+      </section>
+
+      <section className="instagram-orders">
+        <div className="instagram-orders-heading"><div><h2>신청 계정 목록</h2><p>승인 상태와 30일 이용기간을 확인할 수 있습니다.</p></div><button onClick={()=>load()}><RefreshCw size={16}/>새로고침</button></div>
+        {orders.length?<div className="instagram-order-list">{orders.map(order=>{const info=statusInfo[order.status];return <article key={order.id}>
+          <div className="instagram-order-main"><span className="instagram-avatar">@</span><div><h3>@{order.instagram_username}</h3><p>신청일 {dateText(order.created_at)}</p></div><b className={`instagram-order-status ${info.className}`}>{info.label}</b></div>
+          <div className="instagram-order-detail"><span><small>이용 기간</small><strong>{order.status==="active"?`${dateText(order.service_start_at)} ~ ${dateText(order.service_end_at)}`:"승인 후 30일"}</strong></span><span><small>남은 기간</small><strong>{order.status==="active"?`${daysLeft(order.service_end_at)}일`:"-"}</strong></span><span><small>사용 포인트</small><strong>{Number(order.price_points).toLocaleString()}P</strong></span></div>
+          <p className="instagram-order-description">{order.status==="rejected"&&order.rejection_reason?order.rejection_reason:info.description}</p>
+          <div className="instagram-feature-tags">{order.follow_enabled&&<span>선팔 {order.feed_follow_limit+order.search_follow_limit}</span>}{order.like_enabled&&<span>좋아요 {order.feed_like_limit+order.search_like_limit}</span>}{order.story_enabled&&<span>스토리 {order.story_daily_limit}</span>}{order.comment_enabled&&<span>댓글 {order.comment_daily_limit}</span>}</div>
+        </article>})}</div>:<div className="instagram-empty"><Clock3 size={30}/><strong>신청한 계정이 없습니다.</strong><span>설정을 완료하고 첫 계정을 추가해 보세요.</span></div>}
+      </section>
+    </div>
+  </main>;
+}
+
+function SettingBox({icon,title,checked,setChecked,children}:{icon:ReactNode;title:string;checked:boolean;setChecked:(v:boolean)=>void;children:ReactNode}){
+  return <article className={!checked?"disabled":""}><button type="button" className="instagram-setting-toggle" onClick={()=>setChecked(!checked)}><span className={checked?"checked":""}>{checked&&<CheckCircle2 size={15}/>}</span>{icon}<strong>{title}</strong></button><div className="instagram-setting-fields">{children}</div></article>;
+}

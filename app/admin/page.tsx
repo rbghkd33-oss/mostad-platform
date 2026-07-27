@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   AlertCircle, ArrowDownCircle, ArrowUpCircle, BadgeCheck, BriefcaseBusiness,
   ChevronRight, CircleDollarSign, CreditCard, LayoutDashboard, Loader2, LogOut,
-  Search, ShieldCheck, Sparkles, UserCog, UserRoundCog, Users, X,
+  Search, ShieldCheck, Sparkles, UserCog, UserRoundCog, Users, X, Instagram, CheckCircle2, XCircle,
 } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
@@ -17,10 +17,12 @@ type Member = {
 };
 type Payment = { id:number; order_no:string; amount:number; point_amount:number; status:string; payment_method:string|null; pg_provider:string; created_at:string; user_id:string; };
 type WorkOrder = { id:number; customer_id:string; product_name:string; product_category:string; work_type:string; status:string; assigned_staff_id:string|null; result_url:string|null; created_at:string; };
+type InstagramOrder = { id:number; user_id:string; instagram_username:string; status:string; price_points:number; follow_enabled:boolean; follow_keywords:string; feed_follow_limit:number; search_follow_limit:number; like_enabled:boolean; like_keywords:string; feed_like_limit:number; search_like_limit:number; story_enabled:boolean; story_daily_limit:number; comment_enabled:boolean; comment_daily_limit:number; comment_templates:string; rejection_reason:string|null; service_start_at:string|null; service_end_at:string|null; created_at:string; };
 
 const roleLabel: Record<Role,string> = { user:"일반 회원", staff:"직원", admin:"관리자", super_admin:"최고관리자" };
 const statusLabel: Record<string,string> = { pending:"결제 대기", approved:"결제 승인", point_granted:"포인트 지급 완료", failed:"결제 실패", canceled:"결제 취소", partial_canceled:"부분 취소", refunded:"전액 환불" };
 const workStatusLabel: Record<string,string> = { received:"접수", assigned:"직원 배정", in_progress:"진행 중", review_requested:"검수 요청", revision:"수정 요청", completed:"완료", canceled:"취소" };
+const instagramStatusLabel:Record<string,string>={pending_approval:"승인 요청 중",active:"최적화 가동중",rejected:"승인 반려",expired:"30일 종료",canceled:"취소"};
 
 export default function AdminPage() {
   const router = useRouter();
@@ -30,8 +32,9 @@ export default function AdminPage() {
   const [members,setMembers]=useState<Member[]>([]);
   const [payments,setPayments]=useState<Payment[]>([]);
   const [works,setWorks]=useState<WorkOrder[]>([]);
+  const [instagramOrders,setInstagramOrders]=useState<InstagramOrder[]>([]);
   const [query,setQuery]=useState("");
-  const [tab,setTab]=useState<"members"|"staff"|"works"|"payments">("members");
+  const [tab,setTab]=useState<"members"|"staff"|"works"|"instagram"|"payments">("members");
   const [selected,setSelected]=useState<Member|null>(null);
   const [amount,setAmount]=useState("");
   const [reason,setReason]=useState("");
@@ -41,13 +44,15 @@ export default function AdminPage() {
 
   async function loadData(){
     const supabase=getSupabaseBrowserClient(); if(!supabase)return;
-    const [m,p,w]=await Promise.all([
+    await supabase.rpc("refresh_instagram_order_expiry");
+    const [m,p,w,i]=await Promise.all([
       supabase.from("profiles").select("id,email,manager_name,company_name,phone,point_balance,role,account_status,admin_note,created_at").order("created_at",{ascending:false}),
       supabase.from("payment_orders").select("id,order_no,user_id,amount,point_amount,status,payment_method,pg_provider,created_at").order("created_at",{ascending:false}).limit(100),
       supabase.from("marketing_work_orders").select("id,customer_id,product_name,product_category,work_type,status,assigned_staff_id,result_url,created_at").order("created_at",{ascending:false}).limit(100),
+      supabase.from("instagram_optimization_orders").select("id,user_id,instagram_username,status,price_points,follow_enabled,follow_keywords,feed_follow_limit,search_follow_limit,like_enabled,like_keywords,feed_like_limit,search_like_limit,story_enabled,story_daily_limit,comment_enabled,comment_daily_limit,comment_templates,rejection_reason,service_start_at,service_end_at,created_at").order("created_at",{ascending:false}).limit(200),
     ]);
     if(m.error) throw m.error;
-    setMembers((m.data??[]) as Member[]); setPayments((p.data??[]) as Payment[]); setWorks((w.data??[]) as WorkOrder[]);
+    setMembers((m.data??[]) as Member[]); setPayments((p.data??[]) as Payment[]); setWorks((w.data??[]) as WorkOrder[]); setInstagramOrders((i.data??[]) as InstagramOrder[]);
   }
 
   useEffect(()=>{ const supabase=getSupabaseBrowserClient(); if(!supabase){setLoading(false);return;}
@@ -84,6 +89,18 @@ export default function AdminPage() {
   async function reviewWork(work:WorkOrder,approve:boolean){ const supabase=getSupabaseBrowserClient();if(!supabase)return;
     const {error}=await supabase.rpc("admin_review_work",{p_work_id:work.id,p_approve:approve,p_note:approve?"":"결과를 보완해 주세요."}); if(error){setMessage(error.message);return;}
     setWorks(x=>x.map(i=>i.id===work.id?{...i,status:approve?"completed":"revision"}:i)); setMessage(approve?"검수 승인 및 고객 공개 완료":"직원에게 수정 요청했습니다."); }
+
+  async function reviewInstagram(order:InstagramOrder,approve:boolean){
+    const supabase=getSupabaseBrowserClient();if(!supabase)return;
+    const note=approve?"":window.prompt("반려 사유를 입력해 주세요. 포인트는 자동 환불됩니다.","")??"";
+    if(!approve&&!note.trim())return;
+    setActionLoading(true);
+    const {error}=await supabase.rpc("admin_review_instagram_order",{p_order_id:order.id,p_approve:approve,p_note:note.trim()});
+    setActionLoading(false);
+    if(error){setMessage(error.message);return;}
+    await loadData();
+    setMessage(approve?`@${order.instagram_username} 계정을 승인했습니다. 지금부터 30일간 가동됩니다.`:`@${order.instagram_username} 신청을 반려하고 150,000P를 환불했습니다.`);
+  }
   async function logout(){const s=getSupabaseBrowserClient();await s?.auth.signOut();router.replace("/");}
 
   if(loading)return <main className="loading-screen"><Loader2 className="spin" size={32}/><span>관리자 페이지를 불러오고 있습니다.</span></main>;
@@ -96,6 +113,7 @@ export default function AdminPage() {
         <button onClick={()=>setTab("members")} className={tab==="members"?"active":""}><Users size={18}/>회원 관리</button>
         <button onClick={()=>setTab("staff")} className={tab==="staff"?"active":""}><UserCog size={18}/>직원·권한 관리</button>
         <button onClick={()=>setTab("works")} className={tab==="works"?"active":""}><BriefcaseBusiness size={18}/>업무 배정·검수</button>
+        <button onClick={()=>setTab("instagram")} className={tab==="instagram"?"active":""}><Instagram size={18}/>인스타 승인 관리</button>
         <button onClick={()=>router.push("/admin/work-create")}><UserRoundCog size={18}/>새 업무 등록</button>
         <button onClick={()=>router.push("/admin/work-calendar")}><Sparkles size={18}/>작업 캘린더</button>
         <button onClick={()=>setTab("payments")} className={tab==="payments"?"active":""}><CreditCard size={18}/>PG 결제 관리</button>
@@ -120,6 +138,15 @@ export default function AdminPage() {
       {tab==="works"&&<section className="admin-panel"><div className="admin-panel-heading"><div><h2>업무 배정·검수</h2><p>수동형·혼합형 마케팅 업무를 직원에게 배정하고 결과를 검수합니다.</p></div></div><div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>상품</th><th>신청 회원</th><th>유형</th><th>상태</th><th>담당 직원</th><th>결과</th><th>처리</th></tr></thead><tbody>
         {works.length?works.map(w=><tr key={w.id}><td><b>{w.product_name}</b><small className="table-subtext">{w.product_category}</small></td><td>{members.find(m=>m.id===w.customer_id)?.company_name||members.find(m=>m.id===w.customer_id)?.email||"-"}</td><td>{w.work_type}</td><td>{workStatusLabel[w.status]||w.status}</td><td><select value={w.assigned_staff_id||""} onChange={e=>e.target.value&&assignWork(w,e.target.value)}><option value="">직원 선택</option>{staffMembers.map(s=><option key={s.id} value={s.id}>{s.manager_name||s.email}</option>)}</select></td><td>{w.result_url?<a href={w.result_url} target="_blank" rel="noreferrer">결과 링크</a>:"-"}</td><td>{w.status==="review_requested"?<div className="table-action-group"><button onClick={()=>reviewWork(w,true)}>승인</button><button className="danger" onClick={()=>reviewWork(w,false)}>수정</button></div>:"-"}</td></tr>):<tr><td colSpan={7} className="admin-empty">아직 접수된 수동 업무가 없습니다.</td></tr>}
       </tbody></table></div></section>}
+
+      {tab==="instagram"&&<section className="admin-panel"><div className="admin-panel-heading"><div><h2>인스타 계정 승인 관리</h2><p>회원이 150,000P로 신청한 계정을 검토하고 30일 최적화 서비스를 승인합니다.</p></div><span className="instagram-admin-count">승인 대기 {instagramOrders.filter(i=>i.status==="pending_approval").length}건</span></div>
+        <div className="instagram-admin-list">{instagramOrders.length?instagramOrders.map(order=>{const member=members.find(m=>m.id===order.user_id);return <article key={order.id}>
+          <div className="instagram-admin-head"><div><span className="instagram-admin-avatar">@</span><div><h3>@{order.instagram_username}</h3><p>{member?.company_name||member?.manager_name||member?.email||"회원"} · {new Date(order.created_at).toLocaleString("ko-KR")}</p></div></div><b className={`instagram-admin-status ${order.status}`}>{instagramStatusLabel[order.status]||order.status}</b></div>
+          <div className="instagram-admin-settings"><span><small>선팔로우</small><strong>{order.follow_enabled?`${order.feed_follow_limit+order.search_follow_limit}회 · ${order.follow_keywords||"키워드 없음"}`:"사용 안 함"}</strong></span><span><small>좋아요</small><strong>{order.like_enabled?`${order.feed_like_limit+order.search_like_limit}회 · ${order.like_keywords||"키워드 없음"}`:"사용 안 함"}</strong></span><span><small>스토리</small><strong>{order.story_enabled?`일 ${order.story_daily_limit}회`:"사용 안 함"}</strong></span><span><small>댓글</small><strong>{order.comment_enabled?`일 ${order.comment_daily_limit}회`:"사용 안 함"}</strong></span></div>
+          {order.status==="active"&&<p className="instagram-admin-period">가동 기간: {new Date(order.service_start_at!).toLocaleDateString("ko-KR")} ~ {new Date(order.service_end_at!).toLocaleDateString("ko-KR")}</p>}
+          {order.status==="pending_approval"&&<div className="instagram-admin-actions"><button disabled={actionLoading} onClick={()=>reviewInstagram(order,true)}><CheckCircle2 size={16}/>승인 및 가동</button><button className="reject" disabled={actionLoading} onClick={()=>reviewInstagram(order,false)}><XCircle size={16}/>반려·환불</button></div>}
+        </article>}):<div className="admin-empty">접수된 인스타 계정 신청이 없습니다.</div>}</div>
+      </section>}
 
       {tab==="payments"&&<section className="admin-panel"><div className="admin-panel-heading"><div><h2>PG 결제 관리</h2><p>루시페이먼츠 승인·취소·환불 내역을 확인합니다.</p></div></div><div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>주문번호</th><th>회원</th><th>결제금액</th><th>지급 포인트</th><th>결제수단</th><th>상태</th><th>요청일</th></tr></thead><tbody>
         {payments.length?payments.map(p=><tr key={p.id}><td><b>{p.order_no}</b></td><td>{members.find(m=>m.id===p.user_id)?.company_name||members.find(m=>m.id===p.user_id)?.email||"-"}</td><td>{Number(p.amount).toLocaleString()}원</td><td>{Number(p.point_amount).toLocaleString()}P</td><td>{p.payment_method||"-"}</td><td>{statusLabel[p.status]||p.status}</td><td>{new Date(p.created_at).toLocaleString("ko-KR")}</td></tr>):<tr><td colSpan={7} className="admin-empty">결제 내역이 없습니다.</td></tr>}

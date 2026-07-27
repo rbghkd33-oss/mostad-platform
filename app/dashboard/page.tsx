@@ -21,7 +21,7 @@ type Entry = { id:number; work_order_id:number; entry_date:string; entry_type:st
 const navItems = [
   { label:"대시보드", icon:LayoutDashboard, active:true },
   { label:"플레이스분석", icon:Store, href:"/place-analysis" }, { label:"검색량 조회", icon:Search, href:"/keyword-analysis" },
-  { label:"인스타 마케팅", icon:Sparkles }, { label:"블로그 AI 글쓰기", icon:Bot, href:"/blog-ai" },
+  { label:"인스타 마케팅", icon:Sparkles, href:"/instagram-marketing" }, { label:"블로그 AI 글쓰기", icon:Bot, href:"/blog-ai" },
   { label:"이미지 분석 블로그 글쓰기", icon:Images, href:"/blog-ai-images" },
   { label:"브랜딩 블로그 최적화 관리", icon:NotebookTabs, href:"/branding-blog" },
   { label:"전체 마케팅 보기", icon:Megaphone, href:"/marketing" },
@@ -31,7 +31,7 @@ const navItems = [
 const quickActions = [
   { title:"플레이스분석", description:"플레이스 순위와 경쟁업체 현황을 확인하세요.", icon:Store, tone:"purple", href:"/place-analysis" },
   { title:"검색량 조회", description:"검색량·문서수·경쟁률과 추천 키워드를 분석하세요.", icon:Search, tone:"blue", href:"/keyword-analysis" },
-  { title:"인스타 마케팅", description:"릴스 부스팅과 인스타 상품을 확인하세요.", icon:Sparkles, tone:"pink" },
+  { title:"인스타 마케팅", description:"계정 최적화 설정을 접수하고 승인 상태를 확인하세요.", icon:Sparkles, tone:"pink", href:"/instagram-marketing" },
   { title:"블로그 AI 글쓰기", description:"원고 1편당 1,000P로 AI 블로그 글을 생성하세요.", icon:Bot, tone:"orange", href:"/blog-ai" },
   { title:"이미지 분석 블로그 글쓰기", description:"사진을 분석해 이미지 배치가 포함된 원고를 생성하세요.", icon:Images, tone:"purple", href:"/blog-ai-images" },
   { title:"브랜딩 블로그 최적화 관리", description:"10·20·30회 운영 상품을 포인트로 바로 신청하세요.", icon:NotebookTabs, tone:"blue", href:"/branding-blog" },
