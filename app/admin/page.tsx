@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   AlertCircle, ArrowDownCircle, ArrowUpCircle, BadgeCheck, BriefcaseBusiness,
   ChevronRight, CircleDollarSign, CreditCard, LayoutDashboard, Loader2, LogOut,
-  Search, ShieldCheck, Sparkles, UserCog, UserRoundCog, Users, X, Instagram, CheckCircle2, XCircle,
+  Search, ShieldCheck, Sparkles, UserCog, UserRoundCog, Users, X, Instagram, CheckCircle2, XCircle, Eye, EyeOff, Copy,
 } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
@@ -41,6 +41,8 @@ export default function AdminPage() {
   const [note,setNote]=useState("");
   const [actionLoading,setActionLoading]=useState(false);
   const [message,setMessage]=useState("");
+  const [revealedPasswords,setRevealedPasswords]=useState<Record<number,string>>({});
+  const [credentialLoading,setCredentialLoading]=useState<number|null>(null);
 
   async function loadData(){
     const supabase=getSupabaseBrowserClient(); if(!supabase)return;
@@ -89,6 +91,29 @@ export default function AdminPage() {
   async function reviewWork(work:WorkOrder,approve:boolean){ const supabase=getSupabaseBrowserClient();if(!supabase)return;
     const {error}=await supabase.rpc("admin_review_work",{p_work_id:work.id,p_approve:approve,p_note:approve?"":"결과를 보완해 주세요."}); if(error){setMessage(error.message);return;}
     setWorks(x=>x.map(i=>i.id===work.id?{...i,status:approve?"completed":"revision"}:i)); setMessage(approve?"검수 승인 및 고객 공개 완료":"직원에게 수정 요청했습니다."); }
+
+
+  async function revealInstagramPassword(order:InstagramOrder){
+    if(revealedPasswords[order.id]){
+      setRevealedPasswords(prev=>{const next={...prev};delete next[order.id];return next;});
+      return;
+    }
+    const supabase=getSupabaseBrowserClient();if(!supabase)return;
+    const{data:{session}}=await supabase.auth.getSession();
+    if(!session){setMessage("로그인이 필요합니다.");return;}
+    setCredentialLoading(order.id);setMessage("");
+    const response=await fetch("/api/instagram-orders/reveal",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({orderId:order.id})});
+    const data=await response.json().catch(()=>({}));
+    setCredentialLoading(null);
+    if(!response.ok){setMessage(data.error||"로그인 정보를 불러오지 못했습니다.");return;}
+    setRevealedPasswords(prev=>({...prev,[order.id]:data.password}));
+    window.setTimeout(()=>setRevealedPasswords(prev=>{const next={...prev};delete next[order.id];return next;}),60000);
+  }
+  async function copyInstagramPassword(orderId:number){
+    const password=revealedPasswords[orderId];if(!password)return;
+    await navigator.clipboard.writeText(password);
+    setMessage("인스타그램 비밀번호를 복사했습니다. 사용 후 클립보드를 비워 주세요.");
+  }
 
   async function reviewInstagram(order:InstagramOrder,approve:boolean){
     const supabase=getSupabaseBrowserClient();if(!supabase)return;
@@ -142,6 +167,7 @@ export default function AdminPage() {
       {tab==="instagram"&&<section className="admin-panel"><div className="admin-panel-heading"><div><h2>인스타 계정 승인 관리</h2><p>회원이 150,000P로 신청한 계정을 검토하고 30일 최적화 서비스를 승인합니다.</p></div><span className="instagram-admin-count">승인 대기 {instagramOrders.filter(i=>i.status==="pending_approval").length}건</span></div>
         <div className="instagram-admin-list">{instagramOrders.length?instagramOrders.map(order=>{const member=members.find(m=>m.id===order.user_id);return <article key={order.id}>
           <div className="instagram-admin-head"><div><span className="instagram-admin-avatar">@</span><div><h3>@{order.instagram_username}</h3><p>{member?.company_name||member?.manager_name||member?.email||"회원"} · {new Date(order.created_at).toLocaleString("ko-KR")}</p></div></div><b className={`instagram-admin-status ${order.status}`}>{instagramStatusLabel[order.status]||order.status}</b></div>
+          <div className="instagram-admin-login"><div><small>로그인 아이디</small><strong>@{order.instagram_username}</strong></div><div><small>로그인 비밀번호</small><strong className="instagram-password-value">{revealedPasswords[order.id]||"••••••••••"}</strong></div><button disabled={credentialLoading===order.id} onClick={()=>revealInstagramPassword(order)}>{credentialLoading===order.id?<Loader2 className="spin" size={15}/>:revealedPasswords[order.id]?<EyeOff size={15}/>:<Eye size={15}/>} {revealedPasswords[order.id]?"숨기기":"비밀번호 보기"}</button>{revealedPasswords[order.id]&&<button className="copy" onClick={()=>copyInstagramPassword(order.id)}><Copy size={15}/>복사</button>}</div>
           <div className="instagram-admin-settings"><span><small>선팔로우</small><strong>{order.follow_enabled?`${order.feed_follow_limit+order.search_follow_limit}회 · ${order.follow_keywords||"키워드 없음"}`:"사용 안 함"}</strong></span><span><small>좋아요</small><strong>{order.like_enabled?`${order.feed_like_limit+order.search_like_limit}회 · ${order.like_keywords||"키워드 없음"}`:"사용 안 함"}</strong></span><span><small>스토리</small><strong>{order.story_enabled?`일 ${order.story_daily_limit}회`:"사용 안 함"}</strong></span><span><small>댓글</small><strong>{order.comment_enabled?`일 ${order.comment_daily_limit}회`:"사용 안 함"}</strong></span></div>
           {order.status==="active"&&<p className="instagram-admin-period">가동 기간: {new Date(order.service_start_at!).toLocaleDateString("ko-KR")} ~ {new Date(order.service_end_at!).toLocaleDateString("ko-KR")}</p>}
           {order.status==="pending_approval"&&<div className="instagram-admin-actions"><button disabled={actionLoading} onClick={()=>reviewInstagram(order,true)}><CheckCircle2 size={16}/>승인 및 가동</button><button className="reject" disabled={actionLoading} onClick={()=>reviewInstagram(order,false)}><XCircle size={16}/>반려·환불</button></div>}

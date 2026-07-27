@@ -37,6 +37,8 @@ export default function InstagramMarketingPage(){
   const[balance,setBalance]=useState(0); const[orders,setOrders]=useState<InstagramOrder[]>([]);
   const[message,setMessage]=useState(""); const[error,setError]=useState("");
   const[username,setUsername]=useState("");
+  const[password,setPassword]=useState("");
+  const[showPassword,setShowPassword]=useState(false);
   const[followEnabled,setFollowEnabled]=useState(true); const[followKeywords,setFollowKeywords]=useState("맛집,카페");
   const[feedFollow,setFeedFollow]=useState(10); const[searchFollow,setSearchFollow]=useState(10);
   const[likeEnabled,setLikeEnabled]=useState(true); const[likeKeywords,setLikeKeywords]=useState("맛집,카페");
@@ -59,19 +61,27 @@ export default function InstagramMarketingPage(){
 
   const activeCount=orders.filter(o=>o.status==="active").length;
   const pendingCount=orders.filter(o=>o.status==="pending_approval").length;
-  const canSubmit=balance>=PRICE&&username.trim().length>0&&!submitting;
+  const canSubmit=balance>=PRICE&&username.trim().length>0&&password.length>=4&&!submitting;
 
   async function submit(){
     if(!canSubmit)return; const supabase=getSupabaseBrowserClient();if(!supabase)return;
     setSubmitting(true);setError("");setMessage("");
-    const{error:e}=await supabase.rpc("create_instagram_optimization_order",{
-      p_instagram_username:username.trim(),p_follow_enabled:followEnabled,p_follow_keywords:followKeywords,
-      p_feed_follow_limit:feedFollow,p_search_follow_limit:searchFollow,p_like_enabled:likeEnabled,p_like_keywords:likeKeywords,
-      p_feed_like_limit:feedLike,p_search_like_limit:searchLike,p_story_enabled:storyEnabled,p_story_daily_limit:storyLimit,
-      p_comment_enabled:commentEnabled,p_comment_daily_limit:commentLimit,p_comment_templates:comments,
+    const{data:{session}}=await supabase.auth.getSession();
+    if(!session){setError("로그인이 필요합니다.");setSubmitting(false);return;}
+    const response=await fetch("/api/instagram-orders/create",{
+      method:"POST",
+      headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},
+      body:JSON.stringify({
+        instagramUsername:username.trim(),instagramPassword:password,
+        followEnabled,followKeywords,feedFollowLimit:feedFollow,searchFollowLimit:searchFollow,
+        likeEnabled,likeKeywords,feedLikeLimit:feedLike,searchLikeLimit:searchLike,
+        storyEnabled,storyDailyLimit:storyLimit,commentEnabled,commentDailyLimit:commentLimit,
+        commentTemplates:comments,
+      }),
     });
-    if(e){setError(e.message);setSubmitting(false);return;}
-    setUsername("");setMessage("계정 신청이 접수되었습니다. 관리자 승인 후 30일 동안 가동됩니다.");
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok){setError(data.error||"계정 신청 중 오류가 발생했습니다.");setSubmitting(false);return;}
+    setUsername("");setPassword("");setShowPassword(false);setMessage("계정 신청이 접수되었습니다. 관리자 승인 후 30일 동안 가동됩니다.");
     await load();setSubmitting(false);
   }
 
@@ -92,8 +102,12 @@ export default function InstagramMarketingPage(){
       </section>
 
       <section className="instagram-account-card">
-        <div className="instagram-section-title"><span><UserPlus size={20}/></span><div><h2>새 계정 추가</h2><p>API 연동 전 단계에서는 인스타그램 아이디와 활동 설정만 접수합니다.</p></div></div>
-        <div className="instagram-account-input"><span>@</span><input value={username} onChange={e=>setUsername(e.target.value.replace(/^@/,""))} placeholder="인스타그램 아이디" maxLength={100}/></div>
+        <div className="instagram-section-title"><span><UserPlus size={20}/></span><div><h2>새 계정 추가</h2><p>인스타그램 로그인 정보를 입력하면 암호화되어 안전하게 저장됩니다.</p></div></div>
+        <div className="instagram-login-grid">
+          <div className="instagram-account-input"><span>@</span><input value={username} onChange={e=>setUsername(e.target.value.replace(/^@/,""))} placeholder="인스타그램 아이디" maxLength={100}/></div>
+          <div className="instagram-password-input"><span>PW</span><input type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} placeholder="인스타그램 비밀번호" maxLength={200}/><button type="button" onClick={()=>setShowPassword(v=>!v)}>{showPassword?"숨기기":"보기"}</button></div>
+        </div>
+        <p className="instagram-security-note">비밀번호는 서버에서 암호화되어 저장되며 관리자 로그인 작업 시에만 확인됩니다.</p>
       </section>
 
       <section className="instagram-control-card">
