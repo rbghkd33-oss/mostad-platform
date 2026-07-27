@@ -119,12 +119,19 @@ export default function AdminPage() {
     const supabase=getSupabaseBrowserClient();if(!supabase)return;
     const note=approve?"":window.prompt("반려 사유를 입력해 주세요. 포인트는 자동 환불됩니다.","")??"";
     if(!approve&&!note.trim())return;
-    setActionLoading(true);
-    const {error}=await supabase.rpc("admin_review_instagram_order",{p_order_id:order.id,p_approve:approve,p_note:note.trim()});
+    const{data:{session}}=await supabase.auth.getSession();
+    if(!session){setMessage("로그인이 필요합니다.");return;}
+    setActionLoading(true);setMessage("");
+    const response=await fetch("/api/instagram-orders/review",{
+      method:"POST",
+      headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},
+      body:JSON.stringify({orderId:order.id,approve,note:note.trim()}),
+    });
+    const data=await response.json().catch(()=>({}));
     setActionLoading(false);
-    if(error){setMessage(error.message);return;}
+    if(!response.ok){setMessage(data.error||"인스타 신청 처리 중 오류가 발생했습니다.");return;}
     await loadData();
-    setMessage(approve?`@${order.instagram_username} 계정을 승인했습니다. 지금부터 30일간 가동됩니다.`:`@${order.instagram_username} 신청을 반려하고 150,000P를 환불했습니다.`);
+    setMessage(approve?`@${order.instagram_username} 계정을 자동화 서버에 등록하고 가동했습니다.`:`@${order.instagram_username} 신청을 반려하고 150,000P를 환불했습니다.`);
   }
   async function logout(){const s=getSupabaseBrowserClient();await s?.auth.signOut();router.replace("/");}
 

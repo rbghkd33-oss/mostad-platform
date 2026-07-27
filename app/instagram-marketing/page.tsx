@@ -18,6 +18,12 @@ type InstagramOrder = {
   comment_templates:string; rejection_reason:string|null; service_start_at:string|null;
   service_end_at:string|null; created_at:string;
 };
+type AutomationSchedule={
+  insta_id:string;is_active:boolean;status_code:string;status_msg:string;updated_at:string;
+  progress:{likes:{done:number;limit:number};follows:{done:number;limit:number};comments:{done:number;limit:number};stories:{done:number;limit:number}};
+};
+type AutomationLog={id:number;task_type:string;message:string;success:boolean;created_at:string;time?:string};
+type LiveState={schedule?:AutomationSchedule;logs:AutomationLog[];loading:boolean;error?:string};
 
 const PRICE = 150000;
 const statusInfo:Record<OrderStatus,{label:string;className:string;description:string}> = {
@@ -35,6 +41,7 @@ export default function InstagramMarketingPage(){
   const router=useRouter();
   const[loading,setLoading]=useState(true); const[submitting,setSubmitting]=useState(false);
   const[balance,setBalance]=useState(0); const[orders,setOrders]=useState<InstagramOrder[]>([]);
+  const[liveStates,setLiveStates]=useState<Record<number,LiveState>>({});
   const[message,setMessage]=useState(""); const[error,setError]=useState("");
   const[username,setUsername]=useState("");
   const[password,setPassword]=useState("");
@@ -58,6 +65,36 @@ export default function InstagramMarketingPage(){
     if(e)throw e; setOrders((o??[]) as InstagramOrder[]);setBalance(points);
   }
   useEffect(()=>{load().catch(e=>setError(e instanceof Error?e.message:"정보를 불러오지 못했습니다.")).finally(()=>setLoading(false));},[]);
+
+  useEffect(()=>{
+    const activeOrders=orders.filter(order=>order.status==="active");
+    if(!activeOrders.length){setLiveStates({});return;}
+    let cancelled=false;
+    async function poll(){
+      const supabase=getSupabaseBrowserClient();if(!supabase)return;
+      const{data:{session}}=await supabase.auth.getSession();if(!session)return;
+      await Promise.all(activeOrders.map(async order=>{
+        setLiveStates(prev=>({...prev,[order.id]:{...(prev[order.id]??{logs:[]}),loading:!prev[order.id]?.schedule}}));
+        try{
+          const headers={Authorization:`Bearer ${session.access_token}`};
+          const[scheduleResponse,logsResponse]=await Promise.all([
+            fetch(`/api/instagram-orders/${order.id}/schedule`,{headers,cache:"no-store"}),
+            fetch(`/api/instagram-orders/${order.id}/logs`,{headers,cache:"no-store"}),
+          ]);
+          const scheduleData=await scheduleResponse.json().catch(()=>({}));
+          const logsData=await logsResponse.json().catch(()=>[]);
+          if(!scheduleResponse.ok)throw new Error(scheduleData.error||"자동화 현황을 불러오지 못했습니다.");
+          if(!logsResponse.ok)throw new Error(logsData.error||"자동화 로그를 불러오지 못했습니다.");
+          if(!cancelled)setLiveStates(prev=>({...prev,[order.id]:{schedule:scheduleData as AutomationSchedule,logs:Array.isArray(logsData)?logsData as AutomationLog[]:[],loading:false}}));
+        }catch(e){
+          if(!cancelled)setLiveStates(prev=>({...prev,[order.id]:{...(prev[order.id]??{logs:[]}),loading:false,error:e instanceof Error?e.message:"자동화 서버 연결 오류"}}));
+        }
+      }));
+    }
+    poll();
+    const timer=window.setInterval(poll,4000);
+    return()=>{cancelled=true;window.clearInterval(timer);};
+  },[orders]);
 
   const activeCount=orders.filter(o=>o.status==="active").length;
   const pendingCount=orders.filter(o=>o.status==="pending_approval").length;
@@ -142,10 +179,28 @@ export default function InstagramMarketingPage(){
           <div className="instagram-order-detail"><span><small>이용 기간</small><strong>{order.status==="active"?`${dateText(order.service_start_at)} ~ ${dateText(order.service_end_at)}`:"승인 후 30일"}</strong></span><span><small>남은 기간</small><strong>{order.status==="active"?`${daysLeft(order.service_end_at)}일`:"-"}</strong></span><span><small>사용 포인트</small><strong>{Number(order.price_points).toLocaleString()}P</strong></span></div>
           <p className="instagram-order-description">{order.status==="rejected"&&order.rejection_reason?order.rejection_reason:info.description}</p>
           <div className="instagram-feature-tags">{order.follow_enabled&&<span>선팔 {order.feed_follow_limit+order.search_follow_limit}</span>}{order.like_enabled&&<span>좋아요 {order.feed_like_limit+order.search_like_limit}</span>}{order.story_enabled&&<span>스토리 {order.story_daily_limit}</span>}{order.comment_enabled&&<span>댓글 {order.comment_daily_limit}</span>}</div>
+          {order.status==="active"&&<LiveAutomationPanel state={liveStates[order.id]}/>} 
         </article>})}</div>:<div className="instagram-empty"><Clock3 size={30}/><strong>신청한 계정이 없습니다.</strong><span>설정을 완료하고 첫 계정을 추가해 보세요.</span></div>}
       </section>
     </div>
   </main>;
+}
+
+function LiveAutomationPanel({state}:{state?:LiveState}){
+  if(!state||state.loading)return <div className="instagram-live loading"><Loader2 className="spin" size={18}/><span>자동화 서버 현황을 연결하고 있습니다.</span></div>;
+  if(state.error)return <div className="instagram-live error"><XCircle size={17}/><div><strong>자동화 서버 연결 확인 필요</strong><span>{state.error}</span></div></div>;
+  const schedule=state.schedule;if(!schedule)return null;
+  const items=[
+    {label:"좋아요",icon:<Heart size={15}/>,value:schedule.progress.likes},
+    {label:"팔로우",icon:<UserPlus size={15}/>,value:schedule.progress.follows},
+    {label:"댓글",icon:<MessageCircle size={15}/>,value:schedule.progress.comments},
+    {label:"스토리",icon:<Eye size={15}/>,value:schedule.progress.stories},
+  ];
+  return <div className="instagram-live">
+    <div className="instagram-live-head"><div><span className={`instagram-live-dot ${schedule.status_code.toLowerCase()}`}/><div><strong>{schedule.status_msg||"자동화 상태 확인 중"}</strong><small>{schedule.status_code} · {new Date(schedule.updated_at).toLocaleTimeString("ko-KR")}</small></div></div><RefreshCw size={15}/></div>
+    <div className="instagram-live-progress">{items.map(item=>{const max=Math.max(0,item.value.limit);const percent=max?Math.min(100,Math.round(item.value.done/max*100)):0;return <article key={item.label}><div><span>{item.icon}{item.label}</span><strong>{item.value.done}<small> / {item.value.limit}</small></strong></div><i><b style={{width:`${percent}%`}}/></i></article>;})}</div>
+    <div className="instagram-live-logs"><div><strong>최근 작업 로그</strong><small>4초마다 자동 갱신</small></div>{state.logs.length?<ul>{state.logs.slice(0,8).map(log=><li key={log.id}><span className={log.success?"success":"failed"}>{log.success?<CheckCircle2 size={14}/>:<XCircle size={14}/>}</span><p><strong>{log.message}</strong><small>{log.time||new Date(log.created_at).toLocaleTimeString("ko-KR")}</small></p></li>)}</ul>:<p className="instagram-live-empty">아직 기록된 작업 로그가 없습니다.</p>}</div>
+  </div>;
 }
 
 function SettingBox({icon,title,checked,setChecked,children}:{icon:ReactNode;title:string;checked:boolean;setChecked:(v:boolean)=>void;children:ReactNode}){

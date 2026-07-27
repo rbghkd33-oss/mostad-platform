@@ -1,6 +1,48 @@
-1. app, supabase 폴더와 .env.local.example을 기존 mostad-platform에 덮어씁니다.
-2. Supabase SQL Editor에서 supabase/migrations/012_blog_ai_integration.sql 전체를 실행합니다.
-3. Vercel Environment Variables에 BLOG_AI_API_KEY를 추가합니다.
-   - 플레이스 분석과 같은 API 키라면 기존 PLACE_DIAG_API_KEY를 자동으로 사용하므로 추가하지 않아도 됩니다.
-4. 로컬 .env.local에도 BLOG_AI_API_KEY를 추가하면 로컬 테스트가 가능합니다.
-5. git add . / git commit / git push로 배포합니다.
+MOSTAD 인스타 자동화 실시간 연동 v34
+
+[중요]
+기존 홈페이지 폴더와 Python 자동화 서버 폴더를 먼저 통째로 백업하세요.
+Quick Tunnel 주소는 터널을 재실행하면 바뀔 수 있습니다.
+
+1. 홈페이지 파일 적용
+이 ZIP의 app, lib 폴더를 mplatform.kr Next.js 프로젝트 루트에 복사합니다.
+같은 이름의 파일은 교체하고, 새 API 폴더는 추가합니다.
+
+교체되는 파일:
+- app/instagram-marketing/page.tsx
+- app/admin/page.tsx
+- app/globals.css
+
+추가되는 파일:
+- app/api/instagram-orders/[orderId]/schedule/route.ts
+- app/api/instagram-orders/[orderId]/logs/route.ts
+- app/api/instagram-orders/review/route.ts
+- lib/instagram-automation-server.ts
+- lib/server-auth.ts
+
+2. Python 자동화 서버 적용
+automation-server 폴더의 app.py를 현재 Python 자동화 서버의 app.py와 교체합니다.
+database.py, tasks.py, main.py는 최신 확인본이므로 현재 파일과 내용이 같다면 교체하지 않아도 됩니다.
+
+3. Python 자동화 서버 .env
+INSTAGRAM_AUTOMATION_API_KEY에는 32자 이상의 보안 키를 넣습니다.
+홈페이지 Vercel에도 동일한 키를 넣어야 합니다.
+
+4. Vercel 환경변수
+INSTAGRAM_AUTOMATION_API_BASE_URL=https://categories-leisure-bench-stay.trycloudflare.com
+INSTAGRAM_AUTOMATION_API_KEY=Python 자동화 서버 .env와 동일한 키
+
+저장 후 Vercel에서 Redeploy 합니다.
+
+5. Python 서버 재시작
+공개서버.bat을 종료 후 다시 실행합니다.
+터널연결.bat도 다시 실행합니다.
+
+6. 테스트
+- 터널주소/health가 status=ok, database_ready=true인지 확인
+- 관리자 화면에서 승인 대기 계정을 승인
+- 승인 시 자동화 서버 계정 등록 → 설정 동기화 → 가동 시작
+- 고객 인스타 마케팅 화면에서 4초마다 진행률과 최근 로그가 갱신되는지 확인
+
+7. 주의
+현재 Python tasks.py에는 STORY_VIEW 실제 작업이 구현되지 않아 스토리 완료 수량은 0으로 표시될 수 있습니다.
