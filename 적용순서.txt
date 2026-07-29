@@ -1,15 +1,24 @@
-﻿원인
-- Suspense 오류 수정본으로 덮어쓰는 과정에서
-  추가정보 확인 로직이 없는 이전 callback 파일이 다시 적용되었습니다.
+﻿1. pnpm add solapi
+2. app/branding-blog/page.tsx 덮어쓰기
+3. app/api/branding-blog/purchase/route.ts 새로 추가
+4. lib/solapi.ts 새로 추가
 
-적용
-1. app/auth/callback/page.tsx에 덮어쓰기
-2. app/profile/complete/page.tsx가 존재하는지 확인
-3. app/api/profile/complete/route.ts가 존재하는지 확인
-4. git add .
-5. git commit -m "카카오 추가정보 이동 로직 재통합"
-6. git push
+필수 환경변수:
+SOLAPI_API_KEY
+SOLAPI_API_SECRET
+SOLAPI_KAKAO_PF_ID
+SOLAPI_CUSTOMER_TEMPLATE_ID
+SOLAPI_ADMIN_TEMPLATE_ID
+SOLAPI_FROM_NUMBER
+ADMIN_PHONE_NUMBERS
 
-테스트
-- company_name 또는 phone이 빈 카카오 계정으로 로그인
-- /profile/complete로 이동하는지 확인
+고객 템플릿 변수:
+#{고객명}, #{상품명}, #{사용포인트}, #{잔여포인트}, #{처리일시}
+
+관리자 템플릿 변수:
+#{고객명}, #{업체명}, #{상품명}, #{사용포인트}, #{신청일시}
+
+배포:
+git add .
+git commit -m "브랜딩 블로그 알림톡 연동"
+git push

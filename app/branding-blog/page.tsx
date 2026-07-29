@@ -72,23 +72,47 @@ export default function BrandingBlogPage() {
 
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
+
     setSubmitting(true);
-    const { data, error } = await supabase.rpc("customer_purchase_branding_blog_v2", {
-      p_package_count: selected.count,
-      p_blog_url: blogUrl.trim(),
-      p_company_name: companyName.trim(),
-      p_request_note: requestNote.trim(),
-    });
-    setSubmitting(false);
 
-    if (error) {
-      setMessage(error.message);
-      return;
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        setMessage("로그인 정보가 만료되었습니다. 다시 로그인해 주세요.");
+        return;
+      }
+
+      const response = await fetch("/api/branding-blog/purchase", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          packageCount: selected.count,
+          blogUrl: blogUrl.trim(),
+          companyName: companyName.trim(),
+          requestNote: requestNote.trim(),
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setMessage(result.error ?? "상품 접수 중 오류가 발생했습니다.");
+        return;
+      }
+
+      setBalance(Number(result.balance ?? balance - selected.price));
+      setMessage(`접수가 완료되었습니다. 접수번호 #${result.orderId} · 관리자가 담당 직원을 배정하면 진행이 시작됩니다.`);
+      setTimeout(() => router.push("/my-marketing"), 1200);
+    } catch {
+      setMessage("네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setSubmitting(false);
     }
-
-    setBalance((value) => value - selected.price);
-    setMessage(`접수가 완료되었습니다. 접수번호 #${data} · 관리자가 담당 직원을 배정하면 진행이 시작됩니다.`);
-    setTimeout(() => router.push("/my-marketing"), 1200);
   }
 
   if (loading) {
