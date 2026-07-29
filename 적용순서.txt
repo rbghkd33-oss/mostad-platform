@@ -1,5 +1,15 @@
-﻿app/auth/callback/page.tsx에 덮어쓰기
-그 다음 아래 명령 실행
-git add .
-git commit -m "카카오 콜백 Suspense 오류 수정"
-git push
+﻿원인
+- Suspense 오류 수정본으로 덮어쓰는 과정에서
+  추가정보 확인 로직이 없는 이전 callback 파일이 다시 적용되었습니다.
+
+적용
+1. app/auth/callback/page.tsx에 덮어쓰기
+2. app/profile/complete/page.tsx가 존재하는지 확인
+3. app/api/profile/complete/route.ts가 존재하는지 확인
+4. git add .
+5. git commit -m "카카오 추가정보 이동 로직 재통합"
+6. git push
+
+테스트
+- company_name 또는 phone이 빈 카카오 계정으로 로그인
+- /profile/complete로 이동하는지 확인

@@ -8,7 +8,9 @@ import { getSupabaseBrowserClient } from "@/lib/supabase";
 function KakaoCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [message, setMessage] = useState("카카오 로그인 정보를 확인하고 있습니다.");
+  const [message, setMessage] = useState(
+    "카카오 로그인 정보를 확인하고 있습니다.",
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -26,7 +28,10 @@ function KakaoCallbackContent() {
 
         for (let attempt = 0; attempt < 20; attempt += 1) {
           const { data, error } = await supabase.auth.getSession();
-          if (error) throw error;
+
+          if (error) {
+            throw error;
+          }
 
           if (data.session) {
             session = data.session;
@@ -40,25 +45,55 @@ function KakaoCallbackContent() {
           throw new Error("카카오 로그인 세션을 확인하지 못했습니다.");
         }
 
-        const { error: profileError } = await supabase.rpc("ensure_my_profile");
+        const { error: profileError } = await supabase.rpc(
+          "ensure_my_profile",
+        );
+
         if (profileError) {
-          console.warn("ensure_my_profile 실패:", profileError.message);
+          console.warn(
+            "ensure_my_profile 실패:",
+            profileError.message,
+          );
         }
+
+        const { data: profile, error: profileReadError } = await supabase
+          .from("profiles")
+          .select("manager_name, company_name, phone")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        if (profileReadError) {
+          throw profileReadError;
+        }
+
+        const needsProfile =
+          !profile?.manager_name?.trim() ||
+          !profile?.company_name?.trim() ||
+          !profile?.phone?.trim();
 
         sessionStorage.removeItem("mostad-kakao-signup");
 
         const next = searchParams.get("next");
-        const safeNext = next && next.startsWith("/") ? next : "/dashboard";
+        const safeNext =
+          next && next.startsWith("/") ? next : "/dashboard";
 
         if (!cancelled) {
-          router.replace(safeNext);
+          router.replace(
+            needsProfile ? "/profile/complete" : safeNext,
+          );
           router.refresh();
         }
       } catch (error) {
         console.error(error);
+
         if (!cancelled) {
-          setMessage("카카오 로그인 처리에 실패했습니다.");
-          setTimeout(() => router.replace("/?error=kakao_login_failed"), 1800);
+          setMessage(
+            "카카오 로그인 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+          );
+
+          setTimeout(() => {
+            router.replace("/?error=kakao_login_failed");
+          }, 1800);
         }
       }
     }
@@ -71,8 +106,22 @@ function KakaoCallbackContent() {
   }, [router, searchParams]);
 
   return (
-    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#f5f7fb" }}>
-      <section style={{ background: "#fff", borderRadius: 18, padding: 32, textAlign: "center" }}>
+    <main
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        background: "#f5f7fb",
+      }}
+    >
+      <section
+        style={{
+          background: "#fff",
+          borderRadius: 18,
+          padding: 32,
+          textAlign: "center",
+        }}
+      >
         <Loader2 size={34} className="spin" />
         <h1>카카오 계정 연결 중</h1>
         <p>{message}</p>
