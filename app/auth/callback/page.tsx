@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
-export default function KakaoCallbackPage() {
+function KakaoCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("카카오 로그인 정보를 확인하고 있습니다.");
@@ -45,28 +45,13 @@ export default function KakaoCallbackPage() {
           console.warn("ensure_my_profile 실패:", profileError.message);
         }
 
-        const { data: profile, error: profileReadError } = await supabase
-          .from("profiles")
-          .select("manager_name, company_name, phone")
-          .eq("id", session.user.id)
-          .maybeSingle();
-
-        if (profileReadError) {
-          throw profileReadError;
-        }
-
         sessionStorage.removeItem("mostad-kakao-signup");
-
-        const needsProfile =
-          !profile?.manager_name?.trim() ||
-          !profile?.company_name?.trim() ||
-          !profile?.phone?.trim();
 
         const next = searchParams.get("next");
         const safeNext = next && next.startsWith("/") ? next : "/dashboard";
 
         if (!cancelled) {
-          router.replace(needsProfile ? "/profile/complete" : safeNext);
+          router.replace(safeNext);
           router.refresh();
         }
       } catch (error) {
@@ -93,5 +78,39 @@ export default function KakaoCallbackPage() {
         <p>{message}</p>
       </section>
     </main>
+  );
+}
+
+function CallbackLoading() {
+  return (
+    <main
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        background: "#f5f7fb",
+      }}
+    >
+      <section
+        style={{
+          background: "#fff",
+          borderRadius: 18,
+          padding: 32,
+          textAlign: "center",
+        }}
+      >
+        <Loader2 size={34} className="spin" />
+        <h1>카카오 계정 연결 중</h1>
+        <p>로그인 정보를 확인하고 있습니다.</p>
+      </section>
+    </main>
+  );
+}
+
+export default function KakaoCallbackPage() {
+  return (
+    <Suspense fallback={<CallbackLoading />}>
+      <KakaoCallbackContent />
+    </Suspense>
   );
 }

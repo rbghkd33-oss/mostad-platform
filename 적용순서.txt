@@ -1,11 +1,5 @@
-﻿적용할 파일
-1. app/auth/callback/page.tsx 덮어쓰기
-2. app/profile/complete/page.tsx 새로 추가
-3. app/api/profile/complete/route.ts 새로 추가
-
-app/api/auth/signup 폴더가 없어도 괜찮습니다.
-
-배포
+﻿app/auth/callback/page.tsx에 덮어쓰기
+그 다음 아래 명령 실행
 git add .
-git commit -m "카카오 회원 추가정보 입력 추가"
+git commit -m "카카오 콜백 Suspense 오류 수정"
 git push
