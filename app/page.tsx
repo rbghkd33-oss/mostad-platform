@@ -27,6 +27,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [message, setMessage] = useState("");
+  const [kakaoLoading, setKakaoLoading] = useState(false);
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -40,6 +41,32 @@ export default function LoginPage() {
       else setChecking(false);
     });
   }, [router]);
+
+
+  async function handleKakaoLogin() {
+    setMessage("");
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase) {
+      setMessage("Supabase 연결 정보가 아직 등록되지 않았습니다.");
+      return;
+    }
+
+    setKakaoLoading(true);
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "kakao",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+        scopes: "profile_nickname profile_image",
+      },
+    });
+
+    if (error) {
+      setMessage(`카카오 로그인 실패: ${error.message}`);
+      setKakaoLoading(false);
+    }
+  }
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -199,6 +226,26 @@ export default function LoginPage() {
           </form>
 
           <div className="divider"><span>또는</span></div>
+
+          <button
+            type="button"
+            onClick={handleKakaoLogin}
+            disabled={kakaoLoading}
+            style={{
+              width: "100%",
+              minHeight: 52,
+              border: 0,
+              borderRadius: 12,
+              background: "#FEE500",
+              color: "#191919",
+              fontSize: 15,
+              fontWeight: 800,
+              cursor: kakaoLoading ? "default" : "pointer",
+              marginBottom: 12,
+            }}
+          >
+            {kakaoLoading ? "카카오 연결 중..." : "카카오로 로그인"}
+          </button>
 
           <button type="button" className="signup-button" onClick={() => router.push("/signup")}>모스트애드 회원가입</button>
 

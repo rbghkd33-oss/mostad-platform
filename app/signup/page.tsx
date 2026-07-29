@@ -32,6 +32,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
+  const [kakaoLoading, setKakaoLoading] = useState(false);
 
   const formatPhone = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -39,6 +40,39 @@ export default function SignupPage() {
     if (digits.length < 8) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
     return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
   };
+
+
+  async function handleKakaoSignup() {
+    setMessage("");
+
+    if (!agreeTerms || !agreePrivacy) {
+      setMessage("카카오 회원가입 전 필수 약관에 모두 동의해 주세요.");
+      return;
+    }
+
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      setMessage("Supabase 연결 정보가 등록되지 않았습니다.");
+      return;
+    }
+
+    setKakaoLoading(true);
+    sessionStorage.setItem("mostad-kakao-signup", "true");
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "kakao",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+        scopes: "profile_nickname profile_image",
+      },
+    });
+
+    if (error) {
+      sessionStorage.removeItem("mostad-kakao-signup");
+      setMessage(`카카오 회원가입 실패: ${error.message}`);
+      setKakaoLoading(false);
+    }
+  }
 
   async function handleSignup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -145,6 +179,26 @@ export default function SignupPage() {
             <h1>회원가입</h1>
             <p>모스트애드 마케팅 플랫폼 이용을 위한 정보를 입력해 주세요.</p>
           </div>
+
+          <button
+            type="button"
+            onClick={handleKakaoSignup}
+            disabled={kakaoLoading}
+            style={{
+              width: "100%",
+              minHeight: 54,
+              border: 0,
+              borderRadius: 12,
+              background: "#FEE500",
+              color: "#191919",
+              fontSize: 15,
+              fontWeight: 800,
+              cursor: kakaoLoading ? "default" : "pointer",
+              marginBottom: 18,
+            }}
+          >
+            {kakaoLoading ? "카카오 연결 중..." : "카카오로 간편 회원가입"}
+          </button>
 
           <form onSubmit={handleSignup} noValidate>
             <div className="signup-grid">
