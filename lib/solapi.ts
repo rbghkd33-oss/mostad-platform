@@ -108,3 +108,37 @@ export async function sendInstagramApprovedAlimtalk(input: {
     },
   });
 }
+
+export async function sendPointChargeCompletedAlimtalk(input: {
+  to: string;
+  customerName: string;
+  chargedPoints: number;
+  paidAmount: number;
+  currentBalance: number;
+  orderNumber: string;
+  processedAt: string;
+}) {
+  const toPhone = phone(input.to);
+
+  if (!toPhone) {
+    throw new Error("고객 연락처가 없습니다.");
+  }
+
+  return service().send({
+    to: toPhone,
+    from: from(),
+    kakaoOptions: {
+      pfId: pfId(),
+      templateId: env("SOLAPI_POINT_CHARGE_TEMPLATE_ID"),
+      disableSms: true,
+      variables: {
+        "#{고객명}": input.customerName,
+        "#{충전포인트}": input.chargedPoints.toLocaleString("ko-KR"),
+        "#{결제금액}": input.paidAmount.toLocaleString("ko-KR"),
+        "#{현재포인트}": input.currentBalance.toLocaleString("ko-KR"),
+        "#{주문번호}": input.orderNumber,
+        "#{처리일시}": input.processedAt,
+      },
+    },
+  });
+}

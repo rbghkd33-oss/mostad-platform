@@ -1,36 +1,17 @@
-﻿적용 파일
-1. app/api/blog-ai/generate/route.ts 덮어쓰기
-2. app/api/blog-ai/generate-with-images/route.ts 덮어쓰기
+﻿1. lib/solapi.ts 덮어쓰기
+2. app/api/payments/lucy/notify/route.ts 덮어쓰기
 
-lib/solapi.ts
-- 기존 인스타 승인/신청 연동을 적용한 최신 파일을 계속 사용하세요.
-- 압축 안 lib/solapi.ts는 참고용입니다.
+환경변수 확인:
+SOLAPI_POINT_CHARGE_TEMPLATE_ID=승인된 템플릿 ID
 
-동작
-일반 블로그 AI:
-원고 생성 성공 → 결과 저장 및 1,000P 차감 성공
-→ 고객 포인트 사용 알림톡
-→ 관리자 3명 사용 알림톡
-→ 화면에 완료 결과 전송
+이미 실행한 SQL:
+alimtalk_delivery_events 테이블 생성
 
-이미지 분석 블로그 AI:
-이미지 분석 원고 생성 성공 → 결과 저장 및 1,000P 차감 성공
-→ 고객 포인트 사용 알림톡
-→ 관리자 3명 사용 알림톡
-→ 화면에 완료 결과 전송
+테스트:
+pnpm build
+pnpm dev
 
-주의
-- 생성 실패, 시간 초과, 포인트 차감 실패 시 알림톡은 발송되지 않습니다.
-- 알림톡 실패 시 원고와 포인트 처리 결과는 취소되지 않고 서버 로그에만 남습니다.
-- 일반 블로그 AI route의 runtime을 edge에서 nodejs로 변경했습니다. Solapi Node SDK 사용에 필요합니다.
-
-테스트
-pnpm dev 재시작
-일반 AI 원고 1건 생성
-이미지 분석 AI 원고 1건 생성
-고객 및 관리자 알림톡 확인
-
-배포
+정상 확인 후:
 git add .
-git commit -m "블로그 AI 알림톡 연동"
+git commit -m "포인트 충전 완료 알림톡 연동"
 git push
