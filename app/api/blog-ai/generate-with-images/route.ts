@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { sendAdminOrderAlimtalk, sendCustomerPointUseAlimtalk } from "@/lib/solapi";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
             headers: { apikey: anonKey, Authorization: `Bearer ${accessToken}` }, cache: "no-store",
           });
           if (!userResponse.ok) throw new Error("로그인 정보가 만료되었습니다. 다시 로그인해 주세요.");
-          const user = (await userResponse.json()) as { id?: string };
+          const user = (await userResponse.json()) as { id?: string; email?: string };
           if (!user.id) throw new Error("회원 정보를 확인하지 못했습니다.");
 
           const input = await request.formData();
@@ -76,11 +77,11 @@ export async function POST(request: NextRequest) {
           const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
           if (totalBytes > MAX_TOTAL_BYTES) throw new Error("이미지 전체 용량이 너무 큽니다. 이미지 수를 줄이거나 다시 압축해 주세요.");
 
-          const profileResponse = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}&select=point_balance,account_status`, {
+          const profileResponse = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}&select=point_balance,account_status,manager_name,company_name,phone`, {
             headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, cache: "no-store",
           });
           if (!profileResponse.ok) throw new Error("포인트 정보를 불러오지 못했습니다.");
-          const profiles = (await profileResponse.json()) as Array<{ point_balance?: number; account_status?: string }>;
+          const profiles = (await profileResponse.json()) as Array<{ point_balance?: number; account_status?: string; manager_name?: string | null; company_name?: string | null; phone?: string | null }>;
           const profile = profiles[0];
           if (!profile || profile.account_status !== "active") throw new Error("현재 이용할 수 없는 계정입니다.");
           if (Number(profile.point_balance ?? 0) < COST) {
@@ -163,6 +164,49 @@ export async function POST(request: NextRequest) {
           let rpcResult: Record<string, unknown> = {};
           try { rpcResult = JSON.parse(rpcText) as Record<string, unknown>; } catch {}
           if (!rpcResponse.ok) throw new Error(typeof rpcResult.message === "string" ? rpcResult.message : "포인트 차감 중 오류가 발생했습니다.");
+
+          const remainingPoints = Number(rpcResult.balance ?? 0);
+          const customerName = profile.manager_name?.trim() || user.email || "고객";
+          const companyName = profile.company_name?.trim() || "업체명 미등록";
+          const processedAt = new Intl.DateTimeFormat("ko-KR", {
+            timeZone: "Asia/Seoul",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }).format(new Date());
+          const productName = `이미지 분석 블로그 AI 원고 생성 · ${mainKeyword}`;
+
+          const notifications = await Promise.allSettled([
+            profile.phone
+              ? sendCustomerPointUseAlimtalk({
+                  to: profile.phone,
+                  customerName,
+                  productName,
+                  usedPoints: COST,
+                  remainingPoints,
+                  processedAt,
+                })
+              : Promise.reject(new Error("고객 연락처가 없습니다.")),
+            sendAdminOrderAlimtalk({
+              customerName,
+              companyName,
+              productName,
+              usedPoints: COST,
+              requestedAt: processedAt,
+            }),
+          ]);
+
+          notifications.forEach((notification, index) => {
+            if (notification.status === "rejected") {
+              console.error(
+                index === 0 ? "이미지 블로그 AI 고객 알림톡 실패:" : "이미지 블로그 AI 관리자 알림톡 실패:",
+                notification.reason,
+              );
+            }
+          });
 
           send("complete", {
             body: result.body, char_count: Number(result.char_count ?? 0), retry_count: Number(result.retry_count ?? 0),

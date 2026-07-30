@@ -1,31 +1,36 @@
 ﻿적용 파일
-1. app/api/instagram-orders/create/route.ts 덮어쓰기
-2. lib/solapi.ts 덮어쓰기
+1. app/api/blog-ai/generate/route.ts 덮어쓰기
+2. app/api/blog-ai/generate-with-images/route.ts 덮어쓰기
+
+lib/solapi.ts
+- 기존 인스타 승인/신청 연동을 적용한 최신 파일을 계속 사용하세요.
+- 압축 안 lib/solapi.ts는 참고용입니다.
 
 동작
-인스타 신청 및 150,000P 차감 성공
+일반 블로그 AI:
+원고 생성 성공 → 결과 저장 및 1,000P 차감 성공
 → 고객 포인트 사용 알림톡
-→ 관리자 3명 신규 신청 알림톡
-→ 주문 접수 결과 반환
+→ 관리자 3명 사용 알림톡
+→ 화면에 완료 결과 전송
 
-필수 기존 환경변수
-SOLAPI_API_KEY
-SOLAPI_API_SECRET
-SOLAPI_KAKAO_PF_ID
-SOLAPI_CUSTOMER_TEMPLATE_ID
-SOLAPI_ADMIN_TEMPLATE_ID
-SOLAPI_FROM_NUMBER
-ADMIN_PHONE_NUMBERS
+이미지 분석 블로그 AI:
+이미지 분석 원고 생성 성공 → 결과 저장 및 1,000P 차감 성공
+→ 고객 포인트 사용 알림톡
+→ 관리자 3명 사용 알림톡
+→ 화면에 완료 결과 전송
+
+주의
+- 생성 실패, 시간 초과, 포인트 차감 실패 시 알림톡은 발송되지 않습니다.
+- 알림톡 실패 시 원고와 포인트 처리 결과는 취소되지 않고 서버 로그에만 남습니다.
+- 일반 블로그 AI route의 runtime을 edge에서 nodejs로 변경했습니다. Solapi Node SDK 사용에 필요합니다.
 
 테스트
 pnpm dev 재시작
-인스타 계정 신청
-고객 및 관리자 알림톡 수신 확인
+일반 AI 원고 1건 생성
+이미지 분석 AI 원고 1건 생성
+고객 및 관리자 알림톡 확인
 
 배포
 git add .
-git commit -m "인스타 신청 알림톡 연동"
+git commit -m "블로그 AI 알림톡 연동"
 git push
-
-주의
-알림톡 발송 실패 시에도 주문 생성과 포인트 차감은 유지됩니다.
