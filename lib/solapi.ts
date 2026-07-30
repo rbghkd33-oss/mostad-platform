@@ -78,3 +78,30 @@ export async function sendAdminOrderAlimtalk(input: {
     ),
   );
 }
+
+export async function sendInstagramApprovedAlimtalk(input: {
+  to: string;
+  customerName: string;
+  instagramUsername: string;
+  startDate: string;
+  endDate: string;
+}) {
+  const toPhone = phone(input.to);
+  if (!toPhone) throw new Error("고객 연락처가 없습니다.");
+
+  return service().send({
+    to: toPhone,
+    from: from(),
+    kakaoOptions: {
+      pfId: pfId(),
+      templateId: env("SOLAPI_INSTAGRAM_APPROVED_TEMPLATE_ID"),
+      disableSms: true,
+      variables: {
+        "#{고객명}": input.customerName,
+        "#{인스타계정}": input.instagramUsername,
+        "#{시작일}": input.startDate,
+        "#{종료일}": input.endDate,
+      },
+    },
+  });
+}

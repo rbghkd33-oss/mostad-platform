@@ -1,24 +1,26 @@
-﻿1. pnpm add solapi
-2. app/branding-blog/page.tsx 덮어쓰기
-3. app/api/branding-blog/purchase/route.ts 새로 추가
-4. lib/solapi.ts 새로 추가
+﻿1. lib/solapi.ts 덮어쓰기
+2. app/api/instagram-orders/review/route.ts 덮어쓰기
 
-필수 환경변수:
-SOLAPI_API_KEY
-SOLAPI_API_SECRET
-SOLAPI_KAKAO_PF_ID
-SOLAPI_CUSTOMER_TEMPLATE_ID
-SOLAPI_ADMIN_TEMPLATE_ID
-SOLAPI_FROM_NUMBER
-ADMIN_PHONE_NUMBERS
+환경변수
+SOLAPI_INSTAGRAM_APPROVED_TEMPLATE_ID=승인된 템플릿 ID
 
-고객 템플릿 변수:
-#{고객명}, #{상품명}, #{사용포인트}, #{잔여포인트}, #{처리일시}
+승인 템플릿 변수
+#{고객명}
+#{인스타계정}
+#{시작일}
+#{종료일}
 
-관리자 템플릿 변수:
-#{고객명}, #{업체명}, #{상품명}, #{사용포인트}, #{신청일시}
+테스트
+pnpm dev 재시작
+관리자 화면에서 승인 대기 계정을 승인
+고객 전화번호로 승인 알림톡 수신 확인
 
-배포:
+배포
 git add .
-git commit -m "브랜딩 블로그 알림톡 연동"
+git commit -m "인스타 승인 알림톡 연동"
 git push
+
+참고
+app/instagram-marketing/page.tsx는 변경하지 않았습니다.
+신청 직후 고객·관리자 알림을 연결하려면
+app/api/instagram-orders/create/route.ts 파일이 추가로 필요합니다.

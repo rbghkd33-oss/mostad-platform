@@ -6,9 +6,20 @@ import {
   callAutomationApi,
   normalizeInstagramUsername,
 } from "@/lib/instagram-automation-server";
+import { sendInstagramApprovedAlimtalk } from "@/lib/solapi";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function dateText(value: string | null | undefined): string {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(value));
+}
 
 function encryptionKey() {
   const secret = process.env.INSTAGRAM_CREDENTIAL_ENCRYPTION_KEY?.trim();
@@ -52,7 +63,7 @@ export async function POST(request: NextRequest) {
     const { data: order, error: orderError } = await service
       .from("instagram_optimization_orders")
       .select(
-        "id,status,instagram_username,password_ciphertext,password_iv,password_tag,follow_enabled,follow_keywords,feed_follow_limit,search_follow_limit,like_enabled,like_keywords,feed_like_limit,search_like_limit,story_enabled,story_daily_limit,comment_enabled,comment_daily_limit,comment_templates",
+        "id,user_id,status,instagram_username,password_ciphertext,password_iv,password_tag,follow_enabled,follow_keywords,feed_follow_limit,search_follow_limit,like_enabled,like_keywords,feed_like_limit,search_like_limit,story_enabled,story_daily_limit,comment_enabled,comment_daily_limit,comment_templates",
       )
       .eq("id", orderId)
       .single();
@@ -135,6 +146,40 @@ export async function POST(request: NextRequest) {
       p_note: "",
     });
     if (reviewError) throw new Error(reviewError.message);
+
+    // 승인은 이미 완료된 상태입니다.
+    // 알림톡 실패가 승인 결과에 영향을 주지 않도록 별도로 처리합니다.
+    try {
+      const [
+        { data: approvedOrder, error: approvedOrderError },
+        { data: profile, error: profileError },
+      ] = await Promise.all([
+        service
+          .from("instagram_optimization_orders")
+          .select("service_start_at,service_end_at")
+          .eq("id", orderId)
+          .single(),
+        service
+          .from("profiles")
+          .select("manager_name,phone")
+          .eq("id", order.user_id)
+          .single(),
+      ]);
+
+      if (approvedOrderError) throw approvedOrderError;
+      if (profileError) throw profileError;
+      if (!profile?.phone) throw new Error("고객 연락처가 없습니다.");
+
+      await sendInstagramApprovedAlimtalk({
+        to: profile.phone,
+        customerName: profile.manager_name?.trim() || "고객",
+        instagramUsername: `@${username}`,
+        startDate: dateText(approvedOrder?.service_start_at),
+        endDate: dateText(approvedOrder?.service_end_at),
+      });
+    } catch (notificationError) {
+      console.error("인스타 승인 알림톡 발송 실패:", notificationError);
+    }
 
     return NextResponse.json({ ok: true, status: "active", username });
   } catch (error) {
