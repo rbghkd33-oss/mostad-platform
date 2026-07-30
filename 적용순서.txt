@@ -1,26 +1,31 @@
-﻿1. lib/solapi.ts 덮어쓰기
-2. app/api/instagram-orders/review/route.ts 덮어쓰기
+﻿적용 파일
+1. app/api/instagram-orders/create/route.ts 덮어쓰기
+2. lib/solapi.ts 덮어쓰기
 
-환경변수
-SOLAPI_INSTAGRAM_APPROVED_TEMPLATE_ID=승인된 템플릿 ID
+동작
+인스타 신청 및 150,000P 차감 성공
+→ 고객 포인트 사용 알림톡
+→ 관리자 3명 신규 신청 알림톡
+→ 주문 접수 결과 반환
 
-승인 템플릿 변수
-#{고객명}
-#{인스타계정}
-#{시작일}
-#{종료일}
+필수 기존 환경변수
+SOLAPI_API_KEY
+SOLAPI_API_SECRET
+SOLAPI_KAKAO_PF_ID
+SOLAPI_CUSTOMER_TEMPLATE_ID
+SOLAPI_ADMIN_TEMPLATE_ID
+SOLAPI_FROM_NUMBER
+ADMIN_PHONE_NUMBERS
 
 테스트
 pnpm dev 재시작
-관리자 화면에서 승인 대기 계정을 승인
-고객 전화번호로 승인 알림톡 수신 확인
+인스타 계정 신청
+고객 및 관리자 알림톡 수신 확인
 
 배포
 git add .
-git commit -m "인스타 승인 알림톡 연동"
+git commit -m "인스타 신청 알림톡 연동"
 git push
 
-참고
-app/instagram-marketing/page.tsx는 변경하지 않았습니다.
-신청 직후 고객·관리자 알림을 연결하려면
-app/api/instagram-orders/create/route.ts 파일이 추가로 필요합니다.
+주의
+알림톡 발송 실패 시에도 주문 생성과 포인트 차감은 유지됩니다.
