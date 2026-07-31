@@ -35,7 +35,9 @@ export async function POST(request: NextRequest) {
           const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
           const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
           const apiKey =
-            process.env.BLOG_AI_API_KEY || process.env.PLACE_DIAG_API_KEY;
+            process.env.KEYWORD_API_KEY ||
+            process.env.BLOG_AI_API_KEY ||
+            process.env.PLACE_DIAG_API_KEY;
           const configuredBase = process.env.KEYWORD_API_BASE_URL?.trim();
           const base = (configuredBase || DEFAULT_BASE).replace(/\/$/, "");
 
@@ -138,34 +140,23 @@ export async function POST(request: NextRequest) {
           }
 
           const jobId = startData.job_id;
+
+          // 키워드 분석 작업은 반드시 키워드 전용 조회 경로로 폴링합니다.
+          // API가 예전 poll_url(/api/job/...)을 반환하더라도 원고 서버로
+          // 잘못 연결되지 않도록 /api/keyword-job/{job_id}를 강제로 사용합니다.
+          const pollUrl = `${base}/api/keyword-job/${encodeURIComponent(jobId)}`;
+
           const began = Date.now();
           const deadline = began + 170000;
           let result: Record<string, unknown> | null = null;
 
           while (Date.now() < deadline) {
             await new Promise((resolve) => setTimeout(resolve, 4000));
-            // 별도 터널 서버는 /api/job/{job_id}, 통합 서버는
-            // /api/keyword-job/{job_id}를 사용합니다. 환경변수로 별도 서버 주소가
-            // 설정된 경우 /api/job을 우선 사용합니다.
-            const primaryJobPath = configuredBase ? "job" : "keyword-job";
-            const fallbackJobPath = configuredBase ? "keyword-job" : "job";
-            let jobResponse = await fetch(
-              `${base}/api/${primaryJobPath}/${encodeURIComponent(jobId)}`,
-              {
-                headers: { "X-API-Key": apiKey },
-                cache: "no-store",
-              },
-            );
 
-            if (jobResponse.status === 404) {
-              jobResponse = await fetch(
-                `${base}/api/${fallbackJobPath}/${encodeURIComponent(jobId)}`,
-                {
-                  headers: { "X-API-Key": apiKey },
-                  cache: "no-store",
-                },
-              );
-            }
+            const jobResponse = await fetch(pollUrl, {
+              headers: { "X-API-Key": apiKey },
+              cache: "no-store",
+            });
 
             const job = (await jobResponse.json().catch(() => ({}))) as Record<
               string,
