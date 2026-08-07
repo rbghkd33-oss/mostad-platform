@@ -1,10 +1,21 @@
-# 모스트애드 플랫폼 v16
+# 무료 마케팅 강의 신청 랜딩페이지
 
-고객 대시보드 실시간 진행현황 연동 버전입니다.
+주소: `/free-marketing-class`
 
-- 실제 진행 중/완료 업무 수 표시
-- 직원 작업 등록 내용 즉시 반영
-- 브랜딩 블로그 진행 횟수와 결과 링크 표시
-- 플레이스/블로그 순위와 보장 진행일 표시
-- 고객 진행 화면 시작일, 종료일, 남은 기간 표시
-- 플레이스 관리형 진행 일수 계산 보정
+메뉴 항목 예시:
+
+```ts
+{
+  label: "무료마케팅강의 신청",
+  href: "/free-marketing-class",
+}
+```
+
+설치 순서:
+1. 압축을 프로젝트 루트에 덮어쓰기
+2. Supabase SQL Editor에서 `supabase/free_marketing_class.sql` 실행
+3. GitHub 반영 후 Vercel 배포
+
+기존 환경변수 필요:
+- NEXT_PUBLIC_SUPABASE_URL
+- SUPABASE_SERVICE_ROLE_KEY
