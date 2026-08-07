@@ -47,7 +47,7 @@ export default function AdminPage() {
   const [instagramOrders,setInstagramOrders]=useState<InstagramOrder[]>([]);
   const [lectureApplications,setLectureApplications]=useState<LectureApplication[]>([]);
   const [query,setQuery]=useState("");
-  const [tab,setTab]=useState<"members"|"staff"|"works"|"instagram"|"payments">("members");
+  const [tab,setTab]=useState<"members"|"staff"|"works"|"instagram"|"payments"|"lecture">("members");
   const [selected,setSelected]=useState<Member|null>(null);
   const [amount,setAmount]=useState("");
   const [reason,setReason]=useState("");
@@ -196,6 +196,7 @@ export default function AdminPage() {
         <button onClick={()=>setTab("instagram")} className={tab==="instagram"?"active":""}><Instagram size={18}/>인스타 승인 관리</button>
         <button onClick={()=>router.push("/admin/work-create")}><UserRoundCog size={18}/>새 업무 등록</button>
         <button onClick={()=>router.push("/admin/work-calendar")}><Sparkles size={18}/>작업 캘린더</button>
+        <button onClick={()=>setTab("lecture")} className={tab==="lecture"?"active":""}><BadgeCheck size={18}/>무료강의 신청관리</button>
         <button onClick={()=>setTab("payments")} className={tab==="payments"?"active":""}><CreditCard size={18}/>PG 결제 관리</button>
       </nav><button className="admin-logout" onClick={logout}><LogOut size={17}/>로그아웃</button>
     </aside>
@@ -209,11 +210,11 @@ export default function AdminPage() {
         <article><span className="admin-stat-icon orange"><BriefcaseBusiness size={20}/></span><div><small>진행 업무</small><strong>{works.filter(w=>!["completed","canceled"].includes(w.status)).length}<em>건</em></strong></div></article>
       </section>
 
-      <section className="admin-panel">
+      {tab==="lecture"&&<section className="admin-panel">
         <div className="admin-panel-heading">
           <div>
-            <h2>무료강의 신청 현황</h2>
-            <p>랜딩페이지에서 접수된 무료 마케팅 강의 신청자를 최신순으로 확인합니다.</p>
+            <h2>무료강의 신청관리</h2>
+            <p>랜딩페이지에서 접수된 무료 마케팅 강의 신청자를 최신순으로 확인하고 상태를 관리합니다.</p>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <span className="instagram-admin-count">신규 {lectureApplications.filter(a=>a.status==="new").length}건 · 전체 {lectureApplications.length}건</span>
@@ -245,7 +246,7 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </section>}
 
       {(tab==="members"||tab==="staff")&&<section className="admin-panel"><div className="admin-panel-heading"><div><h2>{tab==="members"?"회원 관리":"직원·권한 관리"}</h2><p>{tab==="staff"?"최고관리자가 가입 회원에게 직원·관리자 권한을 부여합니다.":"회원 정보와 포인트, 이용 상태를 관리합니다."}</p></div><label className="admin-search"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="이메일·업체명·담당자 검색"/></label></div>
         {tab==="staff"&&currentRole!=="super_admin"&&<div className="admin-global-message"><AlertCircle size={17}/>권한 조회는 가능하지만 변경은 최고관리자만 할 수 있습니다.</div>}
