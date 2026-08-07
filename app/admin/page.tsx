@@ -18,11 +18,23 @@ type Member = {
 type Payment = { id:number; order_no:string; amount:number; point_amount:number; status:string; payment_method:string|null; pg_provider:string; created_at:string; user_id:string; };
 type WorkOrder = { id:number; customer_id:string; product_name:string; product_category:string; work_type:string; status:string; assigned_staff_id:string|null; result_url:string|null; created_at:string; };
 type InstagramOrder = { id:number; user_id:string; instagram_username:string; status:string; price_points:number; follow_enabled:boolean; follow_keywords:string; feed_follow_limit:number; search_follow_limit:number; like_enabled:boolean; like_keywords:string; feed_like_limit:number; search_like_limit:number; story_enabled:boolean; story_daily_limit:number; comment_enabled:boolean; comment_daily_limit:number; comment_templates:string; rejection_reason:string|null; service_start_at:string|null; service_end_at:string|null; created_at:string; };
+type LectureApplication = {
+  id:number;
+  name:string;
+  company:string|null;
+  phone:string;
+  interest:string;
+  status:string;
+  created_at:string;
+  privacy_agreed_at:string|null;
+  source:string|null;
+};
 
 const roleLabel: Record<Role,string> = { user:"일반 회원", staff:"직원", admin:"관리자", super_admin:"최고관리자" };
 const statusLabel: Record<string,string> = { pending:"결제 대기", approved:"결제 승인", point_granted:"포인트 지급 완료", failed:"결제 실패", canceled:"결제 취소", partial_canceled:"부분 취소", refunded:"전액 환불" };
 const workStatusLabel: Record<string,string> = { received:"접수", assigned:"직원 배정", in_progress:"진행 중", review_requested:"검수 요청", revision:"수정 요청", completed:"완료", canceled:"취소" };
 const instagramStatusLabel:Record<string,string>={pending_approval:"승인 요청 중",active:"최적화 가동중",rejected:"승인 반려",expired:"30일 종료",canceled:"취소"};
+const lectureStatusLabel:Record<string,string>={new:"신규",contacted:"연락완료",confirmed:"참석확정",completed:"참석완료",canceled:"취소"};
 
 export default function AdminPage() {
   const router = useRouter();
@@ -33,6 +45,7 @@ export default function AdminPage() {
   const [payments,setPayments]=useState<Payment[]>([]);
   const [works,setWorks]=useState<WorkOrder[]>([]);
   const [instagramOrders,setInstagramOrders]=useState<InstagramOrder[]>([]);
+  const [lectureApplications,setLectureApplications]=useState<LectureApplication[]>([]);
   const [query,setQuery]=useState("");
   const [tab,setTab]=useState<"members"|"staff"|"works"|"instagram"|"payments">("members");
   const [selected,setSelected]=useState<Member|null>(null);
@@ -55,6 +68,17 @@ export default function AdminPage() {
     ]);
     if(m.error) throw m.error;
     setMembers((m.data??[]) as Member[]); setPayments((p.data??[]) as Payment[]); setWorks((w.data??[]) as WorkOrder[]); setInstagramOrders((i.data??[]) as InstagramOrder[]);
+
+    const {data:{session}}=await supabase.auth.getSession();
+    if(session){
+      const lectureResponse=await fetch("/api/admin/marketing-lecture-applications",{
+        headers:{Authorization:`Bearer ${session.access_token}`},
+        cache:"no-store",
+      });
+      const lectureData=await lectureResponse.json().catch(()=>({}));
+      if(!lectureResponse.ok)throw new Error(lectureData.message||"무료강의 신청 내역을 불러오지 못했습니다.");
+      setLectureApplications(Array.isArray(lectureData.applications)?lectureData.applications:[]);
+    }
   }
 
   useEffect(()=>{ const supabase=getSupabaseBrowserClient(); if(!supabase){setLoading(false);return;}
@@ -133,6 +157,30 @@ export default function AdminPage() {
     await loadData();
     setMessage(approve?`@${order.instagram_username} 계정을 자동화 서버에 등록하고 가동했습니다.`:`@${order.instagram_username} 신청을 반려하고 150,000P를 환불했습니다.`);
   }
+  async function updateLectureStatus(applicationId:number,status:string){
+    const supabase=getSupabaseBrowserClient();if(!supabase)return;
+    const{data:{session}}=await supabase.auth.getSession();
+    if(!session){setMessage("로그인이 필요합니다.");return;}
+    setActionLoading(true);setMessage("");
+    const response=await fetch("/api/admin/marketing-lecture-applications",{
+      method:"PATCH",
+      headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},
+      body:JSON.stringify({id:applicationId,status}),
+    });
+    const data=await response.json().catch(()=>({}));
+    setActionLoading(false);
+    if(!response.ok){setMessage(data.message||"무료강의 신청 상태 변경에 실패했습니다.");return;}
+    setLectureApplications(prev=>prev.map(item=>item.id===applicationId?{...item,status}:item));
+    setMessage("무료강의 신청 상태를 변경했습니다.");
+  }
+
+  function formatLecturePhone(phone:string){
+    const digits=(phone||"").replace(/\D/g,"");
+    if(digits.length===11)return `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`;
+    if(digits.length===10)return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`;
+    return phone||"-";
+  }
+
   async function logout(){const s=getSupabaseBrowserClient();await s?.auth.signOut();router.replace("/");}
 
   if(loading)return <main className="loading-screen"><Loader2 className="spin" size={32}/><span>관리자 페이지를 불러오고 있습니다.</span></main>;
@@ -159,6 +207,44 @@ export default function AdminPage() {
         <article><span className="admin-stat-icon blue"><BadgeCheck size={20}/></span><div><small>직원·관리자</small><strong>{members.filter(m=>m.role!=="user").length}<em>명</em></strong></div></article>
         <article><span className="admin-stat-icon green"><CircleDollarSign size={20}/></span><div><small>회원 보유 포인트</small><strong>{members.reduce((s,m)=>s+Number(m.point_balance||0),0).toLocaleString()}<em>P</em></strong></div></article>
         <article><span className="admin-stat-icon orange"><BriefcaseBusiness size={20}/></span><div><small>진행 업무</small><strong>{works.filter(w=>!["completed","canceled"].includes(w.status)).length}<em>건</em></strong></div></article>
+      </section>
+
+      <section className="admin-panel">
+        <div className="admin-panel-heading">
+          <div>
+            <h2>무료강의 신청 현황</h2>
+            <p>랜딩페이지에서 접수된 무료 마케팅 강의 신청자를 최신순으로 확인합니다.</p>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <span className="instagram-admin-count">신규 {lectureApplications.filter(a=>a.status==="new").length}건 · 전체 {lectureApplications.length}건</span>
+            <button className="admin-detail-button" onClick={()=>loadData()} disabled={actionLoading}>새로고침</button>
+          </div>
+        </div>
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr><th>신청일</th><th>이름</th><th>업체명</th><th>연락처</th><th>관심 분야</th><th>상태</th></tr>
+            </thead>
+            <tbody>
+              {lectureApplications.length?lectureApplications.map(a=><tr key={a.id}>
+                <td>{new Date(a.created_at).toLocaleString("ko-KR")}</td>
+                <td><b>{a.name}</b></td>
+                <td>{a.company||"-"}</td>
+                <td><a href={`tel:${a.phone}`}>{formatLecturePhone(a.phone)}</a></td>
+                <td>{a.interest}</td>
+                <td>
+                  <select value={a.status} disabled={actionLoading} onChange={e=>updateLectureStatus(a.id,e.target.value)}>
+                    <option value="new">신규</option>
+                    <option value="contacted">연락완료</option>
+                    <option value="confirmed">참석확정</option>
+                    <option value="completed">참석완료</option>
+                    <option value="canceled">취소</option>
+                  </select>
+                </td>
+              </tr>):<tr><td colSpan={6} className="admin-empty">아직 접수된 무료강의 신청이 없습니다.</td></tr>}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       {(tab==="members"||tab==="staff")&&<section className="admin-panel"><div className="admin-panel-heading"><div><h2>{tab==="members"?"회원 관리":"직원·권한 관리"}</h2><p>{tab==="staff"?"최고관리자가 가입 회원에게 직원·관리자 권한을 부여합니다.":"회원 정보와 포인트, 이용 상태를 관리합니다."}</p></div><label className="admin-search"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="이메일·업체명·담당자 검색"/></label></div>
