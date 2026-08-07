@@ -19,13 +19,17 @@ type Payment = { id:number; order_no:string; amount:number; point_amount:number;
 type WorkOrder = { id:number; customer_id:string; product_name:string; product_category:string; work_type:string; status:string; assigned_staff_id:string|null; result_url:string|null; created_at:string; };
 type InstagramOrder = { id:number; user_id:string; instagram_username:string; status:string; price_points:number; follow_enabled:boolean; follow_keywords:string; feed_follow_limit:number; search_follow_limit:number; like_enabled:boolean; like_keywords:string; feed_like_limit:number; search_like_limit:number; story_enabled:boolean; story_daily_limit:number; comment_enabled:boolean; comment_daily_limit:number; comment_templates:string; rejection_reason:string|null; service_start_at:string|null; service_end_at:string|null; created_at:string; };
 type LectureApplication = {
+  id:string;
   name:string;
   company:string|null;
   phone:string;
   interest:string;
   status:string;
+  privacy_agreed:boolean;
   privacy_agreed_at:string|null;
   source:string|null;
+  memo:string|null;
+  created_at:string;
 };
 
 const roleLabel: Record<Role,string> = { user:"일반 회원", staff:"직원", admin:"관리자", super_admin:"최고관리자" };
@@ -67,16 +71,9 @@ export default function AdminPage() {
     if(m.error) throw m.error;
     setMembers((m.data??[]) as Member[]); setPayments((p.data??[]) as Payment[]); setWorks((w.data??[]) as WorkOrder[]); setInstagramOrders((i.data??[]) as InstagramOrder[]);
 
-    const {data:{session}}=await supabase.auth.getSession();
-    if(session){
-      const lectureResponse=await fetch("/api/admin/marketing-lecture-applications",{
-        headers:{Authorization:`Bearer ${session.access_token}`},
-        cache:"no-store",
-      });
-      const lectureData=await lectureResponse.json().catch(()=>({}));
-      if(!lectureResponse.ok)throw new Error(lectureData.message||"무료강의 신청 내역을 불러오지 못했습니다.");
-      setLectureApplications(Array.isArray(lectureData.applications)?lectureData.applications:[]);
-    }
+    const {data:lectureData,error:lectureError}=await supabase.rpc("admin_list_marketing_lecture_applications");
+    if(lectureError)throw lectureError;
+    setLectureApplications((lectureData??[]) as LectureApplication[]);
   }
 
   useEffect(()=>{ const supabase=getSupabaseBrowserClient(); if(!supabase){setLoading(false);return;}
@@ -155,20 +152,16 @@ export default function AdminPage() {
     await loadData();
     setMessage(approve?`@${order.instagram_username} 계정을 자동화 서버에 등록하고 가동했습니다.`:`@${order.instagram_username} 신청을 반려하고 150,000P를 환불했습니다.`);
   }
-  async function updateLectureStatus(application:LectureApplication,status:string){
+  async function updateLectureStatus(applicationId:string,status:string){
     const supabase=getSupabaseBrowserClient();if(!supabase)return;
-    const{data:{session}}=await supabase.auth.getSession();
-    if(!session){setMessage("로그인이 필요합니다.");return;}
     setActionLoading(true);setMessage("");
-    const response=await fetch("/api/admin/marketing-lecture-applications",{
-      method:"PATCH",
-      headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},
-      body:JSON.stringify({phone:application.phone,privacy_agreed_at:application.privacy_agreed_at,status}),
+    const {error}=await supabase.rpc("admin_update_marketing_lecture_application_status",{
+      p_id:applicationId,
+      p_status:status,
     });
-    const data=await response.json().catch(()=>({}));
     setActionLoading(false);
-    if(!response.ok){setMessage(data.message||"무료강의 신청 상태 변경에 실패했습니다.");return;}
-    setLectureApplications(prev=>prev.map(item=>item.phone===application.phone&&item.privacy_agreed_at===application.privacy_agreed_at?{...item,status}:item));
+    if(error){setMessage(error.message||"무료강의 신청 상태 변경에 실패했습니다.");return;}
+    setLectureApplications(prev=>prev.map(item=>item.id===applicationId?{...item,status}:item));
     setMessage("무료강의 신청 상태를 변경했습니다.");
   }
 
@@ -225,14 +218,14 @@ export default function AdminPage() {
               <tr><th>신청일</th><th>이름</th><th>업체명</th><th>연락처</th><th>관심 분야</th><th>상태</th></tr>
             </thead>
             <tbody>
-              {lectureApplications.length?lectureApplications.map(a=><tr key={`${a.phone}-${a.privacy_agreed_at||a.name}`}>
-                <td>{a.privacy_agreed_at?new Date(a.privacy_agreed_at).toLocaleString("ko-KR"):"-"}</td>
+              {lectureApplications.length?lectureApplications.map(a=><tr key={a.id}>
+                <td>{new Date(a.created_at).toLocaleString("ko-KR")}</td>
                 <td><b>{a.name}</b></td>
                 <td>{a.company||"-"}</td>
                 <td><a href={`tel:${a.phone}`}>{formatLecturePhone(a.phone)}</a></td>
                 <td>{a.interest}</td>
                 <td>
-                  <select value={a.status} disabled={actionLoading} onChange={e=>updateLectureStatus(a,e.target.value)}>
+                  <select value={a.status} disabled={actionLoading} onChange={e=>updateLectureStatus(a.id,e.target.value)}>
                     <option value="new">신규</option>
                     <option value="contacted">연락완료</option>
                     <option value="confirmed">참석확정</option>
