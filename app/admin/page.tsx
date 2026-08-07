@@ -19,13 +19,11 @@ type Payment = { id:number; order_no:string; amount:number; point_amount:number;
 type WorkOrder = { id:number; customer_id:string; product_name:string; product_category:string; work_type:string; status:string; assigned_staff_id:string|null; result_url:string|null; created_at:string; };
 type InstagramOrder = { id:number; user_id:string; instagram_username:string; status:string; price_points:number; follow_enabled:boolean; follow_keywords:string; feed_follow_limit:number; search_follow_limit:number; like_enabled:boolean; like_keywords:string; feed_like_limit:number; search_like_limit:number; story_enabled:boolean; story_daily_limit:number; comment_enabled:boolean; comment_daily_limit:number; comment_templates:string; rejection_reason:string|null; service_start_at:string|null; service_end_at:string|null; created_at:string; };
 type LectureApplication = {
-  id:number;
   name:string;
   company:string|null;
   phone:string;
   interest:string;
   status:string;
-  created_at:string;
   privacy_agreed_at:string|null;
   source:string|null;
 };
@@ -157,7 +155,7 @@ export default function AdminPage() {
     await loadData();
     setMessage(approve?`@${order.instagram_username} 계정을 자동화 서버에 등록하고 가동했습니다.`:`@${order.instagram_username} 신청을 반려하고 150,000P를 환불했습니다.`);
   }
-  async function updateLectureStatus(applicationId:number,status:string){
+  async function updateLectureStatus(application:LectureApplication,status:string){
     const supabase=getSupabaseBrowserClient();if(!supabase)return;
     const{data:{session}}=await supabase.auth.getSession();
     if(!session){setMessage("로그인이 필요합니다.");return;}
@@ -165,12 +163,12 @@ export default function AdminPage() {
     const response=await fetch("/api/admin/marketing-lecture-applications",{
       method:"PATCH",
       headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},
-      body:JSON.stringify({id:applicationId,status}),
+      body:JSON.stringify({phone:application.phone,privacy_agreed_at:application.privacy_agreed_at,status}),
     });
     const data=await response.json().catch(()=>({}));
     setActionLoading(false);
     if(!response.ok){setMessage(data.message||"무료강의 신청 상태 변경에 실패했습니다.");return;}
-    setLectureApplications(prev=>prev.map(item=>item.id===applicationId?{...item,status}:item));
+    setLectureApplications(prev=>prev.map(item=>item.phone===application.phone&&item.privacy_agreed_at===application.privacy_agreed_at?{...item,status}:item));
     setMessage("무료강의 신청 상태를 변경했습니다.");
   }
 
@@ -227,14 +225,14 @@ export default function AdminPage() {
               <tr><th>신청일</th><th>이름</th><th>업체명</th><th>연락처</th><th>관심 분야</th><th>상태</th></tr>
             </thead>
             <tbody>
-              {lectureApplications.length?lectureApplications.map(a=><tr key={a.id}>
-                <td>{new Date(a.created_at).toLocaleString("ko-KR")}</td>
+              {lectureApplications.length?lectureApplications.map(a=><tr key={`${a.phone}-${a.privacy_agreed_at||a.name}`}>
+                <td>{a.privacy_agreed_at?new Date(a.privacy_agreed_at).toLocaleString("ko-KR"):"-"}</td>
                 <td><b>{a.name}</b></td>
                 <td>{a.company||"-"}</td>
                 <td><a href={`tel:${a.phone}`}>{formatLecturePhone(a.phone)}</a></td>
                 <td>{a.interest}</td>
                 <td>
-                  <select value={a.status} disabled={actionLoading} onChange={e=>updateLectureStatus(a.id,e.target.value)}>
+                  <select value={a.status} disabled={actionLoading} onChange={e=>updateLectureStatus(a,e.target.value)}>
                     <option value="new">신규</option>
                     <option value="contacted">연락완료</option>
                     <option value="confirmed">참석확정</option>
