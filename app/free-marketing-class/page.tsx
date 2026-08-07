@@ -44,7 +44,7 @@ export default function FreeMarketingClassPage() {
           <h1>광고비를 쓰기 전에<br/>꼭 알아야 할<br/><em>실전 마케팅</em></h1>
           <p className="fc-desc">네이버 플레이스, 블로그, 인스타그램 등 온라인 채널을 활용해 실제 고객 유입과 문의 전환을 만드는 방법을 사례 중심으로 알려드립니다.</p>
           <div className="fc-info">
-            <article><small>강의 일시</small><strong>9월 3일 · 14:00~17:00</strong></article>
+            <article><small>강의 일시</small><strong>9월 4일(금) · 14:00~17:00</strong></article>
             <article><small>진행 장소</small><strong>마곡나루역 인근</strong></article>
             <article className="gold"><small>참가 비용</small><strong>0원 · 무료</strong></article>
           </div>
@@ -75,7 +75,7 @@ export default function FreeMarketingClassPage() {
 
       <section className="fc-apply"><div className="fc-shell fc-apply-grid">
         <div className="fc-copy"><p className="fc-eyebrow">FREE APPLICATION</p><h2>마케팅,<br/>무작정 시작하지 마세요.</h2><p>우리 업체에 필요한 마케팅부터 알고 시작하면 같은 광고비로도 결과는 달라질 수 있습니다.</p>
-          <div className="fc-checks">{["2026년 9월 3일 목요일","오후 2시 ~ 오후 5시","마곡나루역 인근","참가비 무료"].map(x=><div key={x}><i>✓</i>{x}</div>)}</div>
+          <div className="fc-checks">{["2026년 9월 4일 금요일","오후 2시 ~ 오후 5시","마곡나루역 인근","참가비 무료"].map(x=><div key={x}><i>✓</i>{x}</div>)}</div>
         </div>
         <form id="apply-form" onSubmit={submit} className="fc-form">
           <div className="fc-formhead"><div><p>0원 무료 신청</p><h2>무료 마케팅 강의 신청</h2></div><span>선착순 접수</span></div>
@@ -92,7 +92,7 @@ export default function FreeMarketingClassPage() {
         </form>
       </div></section>
 
-      <section className="fc-bottom"><div className="fc-shell"><div><small>MOSTAD FREE CLASS</small><h2>지금 필요한 마케팅부터 제대로 시작하세요.</h2><p>9월 3일, 마곡나루에서 실제 고객을 만드는 마케팅의 기준을 알려드립니다.</p><button onClick={goForm}>무료로 자리 신청하기</button></div></div></section>
+      <section className="fc-bottom"><div className="fc-shell"><div><small>MOSTAD FREE CLASS</small><h2>지금 필요한 마케팅부터 제대로 시작하세요.</h2><p>9월 4일, 마곡나루에서 실제 고객을 만드는 마케팅의 기준을 알려드립니다.</p><button onClick={goForm}>무료로 자리 신청하기</button></div></div></section>
       <button className="fc-mobile" onClick={goForm}>무료 강의 신청하기</button>
     </main>
 
