@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { FormEvent, useState } from "react";
 
-const interests = ["네이버 플레이스","네이버 블로그","인스타그램","유튜브","구글 광고","브랜딩","온라인 창업","기타"];
+const interests = ["네이버 플레이스","네이버 블로그"];
 
 export default function FreeMarketingClassPage() {
   const [form, setForm] = useState({ name:"", company:"", phone:"", interest:"", privacyAgreed:false });
@@ -42,7 +42,7 @@ export default function FreeMarketingClassPage() {
           <div className="fc-tags"><span>MOSTAD FREE MARKETING CLASS</span><b>선착순 무료</b></div>
           <p className="fc-kicker">2026 OFFLINE SPECIAL CLASS</p>
           <h1>광고비를 쓰기 전에<br/>꼭 알아야 할<br/><em>실전 마케팅</em></h1>
-          <p className="fc-desc">네이버 플레이스, 블로그, 인스타그램 등 온라인 채널을 활용해 실제 고객 유입과 문의 전환을 만드는 방법을 사례 중심으로 알려드립니다.</p>
+          <p className="fc-desc">네이버 플레이스와 블로그, 딱 두 가지에 집중합니다. 검색 노출부터 실제 고객 문의로 이어지는 구조를 사례 중심으로 알려드립니다.</p>
           <div className="fc-info">
             <article><small>강의 일시</small><strong>9월 4일(금) · 14:00~17:00</strong></article>
             <article><small>진행 장소</small><strong>마곡나루역 인근</strong></article>
@@ -59,22 +59,20 @@ export default function FreeMarketingClassPage() {
       <section className="fc-section alt"><div className="fc-shell">
         <p className="fc-eyebrow">WHO IS THIS FOR?</p><h2>이런 분께 추천합니다</h2><p className="fc-sub">마케팅을 하고 있지만 방향이 막막했다면, 이번 강의에서 기준부터 잡아보세요.</p>
         <div className="fc-four">{[
-          "광고를 하고 있지만 효과를 체감하지 못하는 분","네이버 플레이스 노출과 방문 전환을 높이고 싶은 분","블로그·인스타그램 운영 방향이 막막한 분","우리 업체에 맞는 마케팅 전략을 찾고 싶은 분"
+          "플레이스 순위가 오르지 않아 무엇을 바꿔야 할지 막막한 분","네이버 플레이스 노출과 방문·전화 전환을 높이고 싶은 분","블로그를 써도 검색 노출과 문의가 잘 나오지 않는 분","플레이스와 블로그를 함께 활용해 고객 유입 구조를 만들고 싶은 분"
         ].map((x,i)=><article key={x}><b>0{i+1}</b><p>{x}</p></article>)}</div>
       </div></section>
 
       <section className="fc-section"><div className="fc-shell">
-        <p className="fc-eyebrow">WHAT YOU WILL LEARN</p><h2>3시간 동안 이것만큼은 확실히</h2><p className="fc-sub">복잡한 이론보다 실제 사업자에게 필요한 핵심 내용을 중심으로 구성했습니다.</p>
+        <p className="fc-eyebrow">PLACE × BLOG</p><h2>3시간, 플레이스와 블로그만 깊게 다룹니다</h2><p className="fc-sub">채널을 넓게 훑지 않습니다. 실제 사업자에게 바로 필요한 네이버 플레이스와 블로그 실전 내용에 집중합니다.</p>
         <div className="fc-two">{[
-          ["01","NAVER PLACE","네이버 플레이스","검색 노출 구조부터 플레이스 관리와 고객 문의 전환까지 핵심만 알려드립니다."],
-          ["02","BLOG CONTENT","블로그 마케팅","검색되는 콘텐츠와 단순히 글만 발행하는 콘텐츠의 차이를 실제 사례로 설명합니다."],
-          ["03","SNS MARKETING","인스타그램 마케팅","팔로워보다 중요한 도달·콘텐츠·전환 구조를 이해하기 쉽게 알려드립니다."],
-          ["04","MARKETING STRATEGY","실전 마케팅 전략","우리 업종에 어떤 마케팅부터 시작해야 하는지 광고비 우선순위를 잡아드립니다."]
+          ["01","NAVER PLACE","네이버 플레이스 실전","키워드·카테고리·메뉴·리뷰·예약 등 노출에 영향을 주는 핵심 요소와 실제 고객 문의로 연결하는 운영 방법을 알려드립니다."],
+          ["02","BLOG CONTENT","네이버 블로그 실전","검색되는 글의 구조, 키워드 선정, 콘텐츠 주제와 발행 방향을 실제 사례와 함께 알려드립니다."]
         ].map(([n,k,t,d])=><article key={n}><div><small>{k}</small><h3>{t}</h3></div><b>{n}</b><p>{d}</p></article>)}</div>
       </div></section>
 
       <section className="fc-apply"><div className="fc-shell fc-apply-grid">
-        <div className="fc-copy"><p className="fc-eyebrow">FREE APPLICATION</p><h2>마케팅,<br/>무작정 시작하지 마세요.</h2><p>우리 업체에 필요한 마케팅부터 알고 시작하면 같은 광고비로도 결과는 달라질 수 있습니다.</p>
+        <div className="fc-copy"><p className="fc-eyebrow">FREE APPLICATION</p><h2>마케팅,<br/>무작정 시작하지 마세요.</h2><p>플레이스와 블로그를 제대로 이해하고 시작하면 광고비를 더 쓰지 않아도 고객 유입 구조를 훨씬 선명하게 만들 수 있습니다.</p>
           <div className="fc-checks">{["2026년 9월 4일 금요일","오후 2시 ~ 오후 5시","마곡나루역 인근","참가비 무료"].map(x=><div key={x}><i>✓</i>{x}</div>)}</div>
         </div>
         <form id="apply-form" onSubmit={submit} className="fc-form">
@@ -84,7 +82,7 @@ export default function FreeMarketingClassPage() {
             <label><span>이름 <b>*</b></span><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="이름을 입력해 주세요"/></label>
             <label><span>업체명</span><input value={form.company} onChange={e=>setForm({...form,company:e.target.value})} placeholder="업체명 또는 상호명"/></label>
             <label><span>전화번호 <b>*</b></span><input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value.replace(/[^0-9-]/g,"")})} inputMode="tel" placeholder="010-0000-0000"/></label>
-            <label><span>관심 마케팅 분야 <b>*</b></span><select value={form.interest} onChange={e=>setForm({...form,interest:e.target.value})}><option value="">관심 분야를 선택해 주세요</option>{interests.map(x=><option key={x}>{x}</option>)}</select></label>
+            <label><span>가장 관심 있는 분야 <b>*</b></span><select value={form.interest} onChange={e=>setForm({...form,interest:e.target.value})}><option value="">플레이스 또는 블로그를 선택해 주세요</option>{interests.map(x=><option key={x}>{x}</option>)}</select></label>
           </div>
           <div className="fc-privacy"><label><input type="checkbox" checked={form.privacyAgreed} onChange={e=>setForm({...form,privacyAgreed:e.target.checked})}/><span><b>[필수]</b> 개인정보 수집 및 이용 동의</span></label><div>수집 항목: 이름, 업체명, 전화번호, 관심 마케팅 분야<br/>수집 목적: 무료 마케팅 강의 신청 접수 및 안내<br/>보유 기간: 강의 종료 후 3개월 또는 동의 철회 시까지</div></div>
           {notice && <div className={`fc-notice ${success?"ok":"bad"}`}>{notice}</div>}
@@ -92,7 +90,7 @@ export default function FreeMarketingClassPage() {
         </form>
       </div></section>
 
-      <section className="fc-bottom"><div className="fc-shell"><div><small>MOSTAD FREE CLASS</small><h2>지금 필요한 마케팅부터 제대로 시작하세요.</h2><p>9월 4일, 마곡나루에서 실제 고객을 만드는 마케팅의 기준을 알려드립니다.</p><button onClick={goForm}>무료로 자리 신청하기</button></div></div></section>
+      <section className="fc-bottom"><div className="fc-shell"><div><small>MOSTAD FREE CLASS</small><h2>플레이스와 블로그, 제대로 알고 시작하세요.</h2><p>9월 4일, 마곡나루에서 네이버 플레이스와 블로그로 실제 고객을 만드는 방법을 알려드립니다.</p><button onClick={goForm}>무료로 자리 신청하기</button></div></div></section>
       <button className="fc-mobile" onClick={goForm}>무료 강의 신청하기</button>
     </main>
 
