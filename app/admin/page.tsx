@@ -30,6 +30,19 @@ type LectureApplication = {
   source:string|null;
   memo:string|null;
   created_at:string;
+  traffic_source:string|null;
+  referrer:string|null;
+  landing_url:string|null;
+  utm_source:string|null;
+  utm_medium:string|null;
+  utm_campaign:string|null;
+  utm_content:string|null;
+  utm_term:string|null;
+  ip_address:string|null;
+  user_agent:string|null;
+  device_type:string|null;
+  os_name:string|null;
+  browser_name:string|null;
 };
 
 const roleLabel: Record<Role,string> = { user:"일반 회원", staff:"직원", admin:"관리자", super_admin:"최고관리자" };
@@ -172,6 +185,49 @@ export default function AdminPage() {
     return phone||"-";
   }
 
+  function lectureSourceLabel(value:string|null){
+    const v=(value||"direct").toLowerCase();
+    if(v==="instagram")return "인스타그램";
+    if(v==="facebook")return "페이스북";
+    if(v==="naver")return "네이버";
+    if(v==="youtube")return "유튜브";
+    if(v==="daangn")return "당근";
+    if(v==="direct")return "직접 접속";
+    return value||"직접 접속";
+  }
+
+  function deviceLabel(value:string|null){
+    if(value==="mobile")return "모바일";
+    if(value==="tablet")return "태블릿";
+    if(value==="desktop")return "PC";
+    return value||"-";
+  }
+
+  function maskIp(value:string|null){
+    if(!value)return "-";
+    if(value.includes(".")){
+      const parts=value.split(".");
+      return parts.length===4?`${parts[0]}.${parts[1]}.***.***`:value;
+    }
+    if(value.includes(":")){
+      const parts=value.split(":");
+      return `${parts.slice(0,3).join(":")}:****`;
+    }
+    return value;
+  }
+
+  const lectureSourceStats=useMemo(()=>{
+    const counts:Record<string,number>={};
+    lectureApplications.forEach(a=>{
+      const key=lectureSourceLabel(a.traffic_source);
+      counts[key]=(counts[key]||0)+1;
+    });
+    return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  },[lectureApplications]);
+
+  const lectureMobileCount=lectureApplications.filter(a=>a.device_type==="mobile").length;
+  const lectureDesktopCount=lectureApplications.filter(a=>a.device_type==="desktop").length;
+
   async function logout(){const s=getSupabaseBrowserClient();await s?.auth.signOut();router.replace("/");}
 
   if(loading)return <main className="loading-screen"><Loader2 className="spin" size={32}/><span>관리자 페이지를 불러오고 있습니다.</span></main>;
@@ -205,25 +261,65 @@ export default function AdminPage() {
         <div className="admin-panel-heading">
           <div>
             <h2>무료강의 신청관리</h2>
-            <p>랜딩페이지에서 접수된 무료 마케팅 강의 신청자를 최신순으로 확인하고 상태를 관리합니다.</p>
+            <p>신청자 정보와 함께 유입 채널·캠페인·기기·브라우저·접속 IP를 확인합니다.</p>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <span className="instagram-admin-count">신규 {lectureApplications.filter(a=>a.status==="new").length}건 · 전체 {lectureApplications.length}건</span>
             <button className="admin-detail-button" onClick={()=>loadData()} disabled={actionLoading}>새로고침</button>
           </div>
         </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:18}}>
+          <article style={{padding:"16px 18px",border:"1px solid #e5e7eb",borderRadius:14,background:"#fff"}}>
+            <small style={{display:"block",color:"#64748b",marginBottom:6}}>전체 신청</small>
+            <strong style={{fontSize:24}}>{lectureApplications.length}명</strong>
+          </article>
+          <article style={{padding:"16px 18px",border:"1px solid #e5e7eb",borderRadius:14,background:"#fff"}}>
+            <small style={{display:"block",color:"#64748b",marginBottom:6}}>모바일</small>
+            <strong style={{fontSize:24}}>{lectureMobileCount}명</strong>
+          </article>
+          <article style={{padding:"16px 18px",border:"1px solid #e5e7eb",borderRadius:14,background:"#fff"}}>
+            <small style={{display:"block",color:"#64748b",marginBottom:6}}>PC</small>
+            <strong style={{fontSize:24}}>{lectureDesktopCount}명</strong>
+          </article>
+          <article style={{padding:"16px 18px",border:"1px solid #e5e7eb",borderRadius:14,background:"#fff"}}>
+            <small style={{display:"block",color:"#64748b",marginBottom:6}}>최다 유입</small>
+            <strong style={{fontSize:17}}>{lectureSourceStats[0]?.[0]||"-"}</strong>
+            <small style={{display:"block",color:"#64748b",marginTop:4}}>{lectureSourceStats[0]?.[1]??0}명</small>
+          </article>
+        </div>
+
+        {lectureSourceStats.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:18}}>
+          {lectureSourceStats.map(([source,count])=><span key={source} style={{padding:"8px 11px",borderRadius:999,background:"#f1f5f9",fontSize:12,fontWeight:800,color:"#334155"}}>{source} {count}명</span>)}
+        </div>}
+
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
-              <tr><th>신청일</th><th>이름</th><th>업체명</th><th>연락처</th><th>관심 분야</th><th>상태</th></tr>
+              <tr>
+                <th>신청일</th><th>이름 / 업체</th><th>연락처 / 관심분야</th><th>유입경로</th><th>캠페인</th><th>기기</th><th>접속 IP</th><th>상태</th>
+              </tr>
             </thead>
             <tbody>
               {lectureApplications.length?lectureApplications.map(a=><tr key={a.id}>
-                <td>{new Date(a.created_at).toLocaleString("ko-KR")}</td>
-                <td><b>{a.name}</b></td>
-                <td>{a.company||"-"}</td>
-                <td><a href={`tel:${a.phone}`}>{formatLecturePhone(a.phone)}</a></td>
-                <td>{a.interest}</td>
+                <td style={{whiteSpace:"nowrap"}}>{new Date(a.created_at).toLocaleString("ko-KR")}</td>
+                <td><b>{a.name}</b><small className="table-subtext">{a.company||"-"}</small></td>
+                <td><a href={`tel:${a.phone}`}>{formatLecturePhone(a.phone)}</a><small className="table-subtext">{a.interest}</small></td>
+                <td>
+                  <b>{lectureSourceLabel(a.traffic_source)}</b>
+                  <small className="table-subtext">{a.utm_medium?`매체: ${a.utm_medium}`:a.referrer?"Referrer 있음":"직접/미확인"}</small>
+                  {a.referrer&&<a href={a.referrer} target="_blank" rel="noreferrer" className="table-subtext" style={{display:"block",maxWidth:190,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={a.referrer}>이전 페이지 보기</a>}
+                </td>
+                <td>
+                  <b>{a.utm_campaign||"-"}</b>
+                  {a.utm_content&&<small className="table-subtext">콘텐츠: {a.utm_content}</small>}
+                  {a.utm_term&&<small className="table-subtext">키워드: {a.utm_term}</small>}
+                </td>
+                <td>
+                  <b>{deviceLabel(a.device_type)}</b>
+                  <small className="table-subtext">{[a.os_name,a.browser_name].filter(Boolean).join(" · ")||"-"}</small>
+                </td>
+                <td title={a.ip_address||""}><b>{maskIp(a.ip_address)}</b></td>
                 <td>
                   <select value={a.status} disabled={actionLoading} onChange={e=>updateLectureStatus(a.id,e.target.value)}>
                     <option value="new">신규</option>
@@ -233,7 +329,7 @@ export default function AdminPage() {
                     <option value="canceled">취소</option>
                   </select>
                 </td>
-              </tr>):<tr><td colSpan={6} className="admin-empty">아직 접수된 무료강의 신청이 없습니다.</td></tr>}
+              </tr>):<tr><td colSpan={8} className="admin-empty">아직 접수된 무료강의 신청이 없습니다.</td></tr>}
             </tbody>
           </table>
         </div>

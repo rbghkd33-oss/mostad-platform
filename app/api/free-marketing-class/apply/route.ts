@@ -15,6 +15,15 @@ export async function POST(request: NextRequest) {
       phone?: unknown;
       interest?: unknown;
       privacyAgreed?: unknown;
+      attribution?: {
+        landingUrl?: unknown;
+        referrer?: unknown;
+        utmSource?: unknown;
+        utmMedium?: unknown;
+        utmCampaign?: unknown;
+        utmContent?: unknown;
+        utmTerm?: unknown;
+      };
     } | null;
 
     const name = clean(body?.name, 30);
@@ -22,6 +31,59 @@ export async function POST(request: NextRequest) {
     const phone = clean(body?.phone, 20);
     const interest = clean(body?.interest, 50);
     const privacyAgreed = body?.privacyAgreed === true;
+    const attribution = body?.attribution;
+    const landingUrl = clean(attribution?.landingUrl, 1000);
+    const referrer = clean(attribution?.referrer, 1000);
+    const utmSource = clean(attribution?.utmSource, 100);
+    const utmMedium = clean(attribution?.utmMedium, 100);
+    const utmCampaign = clean(attribution?.utmCampaign, 200);
+    const utmContent = clean(attribution?.utmContent, 200);
+    const utmTerm = clean(attribution?.utmTerm, 200);
+
+    const forwardedFor = request.headers.get("x-forwarded-for") || "";
+    const ipAddress = clean(
+      request.headers.get("cf-connecting-ip") ||
+        request.headers.get("x-real-ip") ||
+        forwardedFor.split(",")[0]?.trim() ||
+        "",
+      100,
+    );
+    const userAgent = clean(request.headers.get("user-agent") || "", 1000);
+
+    const ua = userAgent.toLowerCase();
+    const deviceType = /ipad|tablet|playbook|silk/.test(ua)
+      ? "tablet"
+      : /mobile|iphone|ipod|android/.test(ua)
+        ? "mobile"
+        : "desktop";
+
+    const osName =
+      /iphone|ipad|ipod/.test(ua) ? "iOS" :
+      /android/.test(ua) ? "Android" :
+      /windows/.test(ua) ? "Windows" :
+      /macintosh|mac os x/.test(ua) ? "macOS" :
+      /linux/.test(ua) ? "Linux" : "Other";
+
+    const browserName =
+      /edg\//.test(ua) ? "Edge" :
+      /opr\//.test(ua) ? "Opera" :
+      /chrome\//.test(ua) && !/edg\//.test(ua) ? "Chrome" :
+      /firefox\//.test(ua) ? "Firefox" :
+      /safari\//.test(ua) && !/chrome\//.test(ua) ? "Safari" : "Other";
+
+    let trafficSource = utmSource || "";
+    if (!trafficSource && referrer) {
+      try {
+        const host = new URL(referrer).hostname.toLowerCase();
+        if (host.includes("instagram.com") || host.includes("l.instagram.com")) trafficSource = "instagram";
+        else if (host.includes("facebook.com") || host.includes("l.facebook.com")) trafficSource = "facebook";
+        else if (host.includes("naver.com")) trafficSource = "naver";
+        else if (host.includes("youtube.com") || host.includes("youtu.be")) trafficSource = "youtube";
+        else if (host.includes("daangn.com") || host.includes("karrotmarket.com")) trafficSource = "daangn";
+        else trafficSource = host;
+      } catch {}
+    }
+    if (!trafficSource) trafficSource = "direct";
 
     if (!name) return NextResponse.json({ message: "이름을 입력해 주세요." }, { status: 400 });
     if (!/^01[016789]-?\d{3,4}-?\d{4}$/.test(phone)) {
@@ -56,6 +118,19 @@ export async function POST(request: NextRequest) {
         privacy_agreed_at: new Date().toISOString(),
         source: "free-marketing-class-landing",
         status: "new",
+        traffic_source: trafficSource,
+        referrer: referrer || null,
+        landing_url: landingUrl || null,
+        utm_source: utmSource || null,
+        utm_medium: utmMedium || null,
+        utm_campaign: utmCampaign || null,
+        utm_content: utmContent || null,
+        utm_term: utmTerm || null,
+        ip_address: ipAddress || null,
+        user_agent: userAgent || null,
+        device_type: deviceType,
+        os_name: osName,
+        browser_name: browserName,
       }),
       cache: "no-store",
     });

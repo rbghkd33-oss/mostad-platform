@@ -19,7 +19,21 @@ export default function FreeMarketingClassPage() {
     if (!form.privacyAgreed) return setNotice("개인정보 수집 및 이용에 동의해 주세요.");
     setSubmitting(true);
     try {
-      const response = await fetch("/api/free-marketing-class/apply", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(form) });
+      const params = new URLSearchParams(window.location.search);
+      const attribution = {
+        landingUrl: window.location.href,
+        referrer: document.referrer || "",
+        utmSource: params.get("utm_source") || "",
+        utmMedium: params.get("utm_medium") || "",
+        utmCampaign: params.get("utm_campaign") || "",
+        utmContent: params.get("utm_content") || "",
+        utmTerm: params.get("utm_term") || "",
+      };
+      const response = await fetch("/api/free-marketing-class/apply", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({...form, attribution}),
+      });
       const data = (await response.json().catch(()=>({}))) as { message?: string };
       if (!response.ok) throw new Error(data.message || "신청 접수 중 오류가 발생했습니다.");
       setSuccess(true); setNotice("무료 강의 신청이 접수되었습니다. 담당자가 확인 후 연락드리겠습니다.");
@@ -84,7 +98,7 @@ export default function FreeMarketingClassPage() {
             <label><span>전화번호 <b>*</b></span><input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value.replace(/[^0-9-]/g,"")})} inputMode="tel" placeholder="010-0000-0000"/></label>
             <label><span>가장 관심 있는 분야 <b>*</b></span><select value={form.interest} onChange={e=>setForm({...form,interest:e.target.value})}><option value="">플레이스 또는 블로그를 선택해 주세요</option>{interests.map(x=><option key={x}>{x}</option>)}</select></label>
           </div>
-          <div className="fc-privacy"><label><input type="checkbox" checked={form.privacyAgreed} onChange={e=>setForm({...form,privacyAgreed:e.target.checked})}/><span><b>[필수]</b> 개인정보 수집 및 이용 동의</span></label><div>수집 항목: 이름, 업체명, 전화번호, 관심 마케팅 분야<br/>수집 목적: 무료 마케팅 강의 신청 접수 및 안내<br/>보유 기간: 강의 종료 후 3개월 또는 동의 철회 시까지</div></div>
+          <div className="fc-privacy"><label><input type="checkbox" checked={form.privacyAgreed} onChange={e=>setForm({...form,privacyAgreed:e.target.checked})}/><span><b>[필수]</b> 개인정보 수집 및 이용 동의</span></label><div>수집 항목: 이름, 업체명, 전화번호, 관심 마케팅 분야, 접속기록(IP·기기·브라우저), 유입경로 정보<br/>수집 목적: 무료 마케팅 강의 신청 접수·안내 및 신청 유입경로 분석<br/>보유 기간: 강의 종료 후 3개월 또는 동의 철회 시까지</div></div>
           {notice && <div className={`fc-notice ${success?"ok":"bad"}`}>{notice}</div>}
           <button className="fc-submit" disabled={submitting}>{submitting?"신청 접수 중...":"무료 강의 신청하기 →"}</button>
         </form>
