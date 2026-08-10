@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sendFreeClassApplicationAlimtalk } from "@/lib/solapi";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "서버 환경변수가 설정되지 않았습니다." }, { status: 500 });
     }
 
+    const normalizedPhone = phone.replace(/\D/g, "");
     const response = await fetch(`${supabaseUrl}/rest/v1/marketing_lecture_applications`, {
       method: "POST",
       headers: {
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         name,
         company: company || null,
-        phone: phone.replace(/\D/g, ""),
+        phone: normalizedPhone,
         interest,
         privacy_agreed: true,
         privacy_agreed_at: new Date().toISOString(),
@@ -61,6 +63,17 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       console.error(await response.text());
       return NextResponse.json({ message: "신청 접수 중 오류가 발생했습니다." }, { status: 500 });
+    }
+
+    try {
+      await sendFreeClassApplicationAlimtalk({
+        to: normalizedPhone,
+        customerName: name,
+        companyName: company,
+        interest,
+      });
+    } catch (alimtalkError) {
+      console.error("무료강의 신청완료 알림톡 발송 실패:", alimtalkError);
     }
 
     return NextResponse.json({ ok: true });

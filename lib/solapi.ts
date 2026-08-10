@@ -142,3 +142,34 @@ export async function sendPointChargeCompletedAlimtalk(input: {
     },
   });
 }
+
+export async function sendFreeClassApplicationAlimtalk(input: {
+  to: string;
+  customerName: string;
+  companyName?: string;
+  interest: string;
+}) {
+  const toPhone = phone(input.to);
+
+  if (!toPhone) {
+    throw new Error("신청자 연락처가 없습니다.");
+  }
+
+  return service().send({
+    to: toPhone,
+    from: from(),
+    kakaoOptions: {
+      pfId: pfId(),
+      templateId: env("SOLAPI_FREE_CLASS_TEMPLATE_ID"),
+      disableSms: true,
+      variables: {
+        "#{고객명}": input.customerName,
+        "#{업체명}": input.companyName?.trim() || "-",
+        "#{관심분야}": input.interest,
+        "#{강의일자}": "2026년 9월 4일(금)",
+        "#{강의시간}": "오후 2시 ~ 오후 5시",
+        "#{강의장소}": "마곡나루역 인근",
+      },
+    },
+  });
+}
